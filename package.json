@@ -18,13 +18,13 @@
     "daily": "node scripts/daily.cjs"
   },
   "dependencies": {
-    "@remotion/bundler": "4.0.534",
-    "@remotion/cli": "4.0.534",
-    "@remotion/media": "4.0.534",
-    "@remotion/renderer": "4.0.534",
+    "@remotion/bundler": "4.0.536",
+    "@remotion/cli": "4.0.536",
+    "@remotion/media": "4.0.536",
+    "@remotion/renderer": "4.0.536",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "remotion": "4.0.534"
+    "remotion": "4.0.536"
   },
   "devDependencies": {
     "@types/react": "^19.2.0",
