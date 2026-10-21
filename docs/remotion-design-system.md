@@ -73,4 +73,3 @@ La disposition varie avec l’intention : colonnes reliées pour les pronoms, pa
 Les révélations sont pilotées par les frames. Pauses de cinq à sept secondes pour les exercices ; les explications n’ajoutent pas un quiz pour remplir leur durée. Les formats durent de 20 à 37 secondes selon la lecture. Le passage final à la menthe préserve la fiche au lieu de rajouter une carte promotionnelle. L’option 1 de 53 secondes reste inchangée. Comme pour cette base, les nouvelles vues sont centrées dans le cadre entier ; les interfaces mobiles devront être vérifiées dans une étape de diffusion, non demandée ici.
 
 L’option 10 synchronise les deux lectures d’un même fichier audio local (3s et 14s), l’onde issue des échantillons décodés et les indications Écoute / À toi / Réécoute. La voix est provisoire et synthétique ; aucun choix définitif de narration n’est déduit de cet essai.
-

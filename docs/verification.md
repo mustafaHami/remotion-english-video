@@ -32,4 +32,6 @@
 
 ## Limites explicitement conservées
 
-Ces vérifications locales ont été faites sous Windows. La CI prépare un contrôle depuis Ubuntu ; le Dockerfile et l’installation finale du VPS restent à exécuter sur le serveur selon la demande utilisateur. Pas d’écoute humaine ni de lecture animée subjective annoncée. Les API sociales, comptes, ordonnanceur et synchronisation Excel du VPS restent dans deploy/TODO-VPS.md. Les deux publications historiques sont déclarées par l’utilisateur, leurs plateformes et URL restent inconnues.
+Ces vérifications locales ont été faites sous Windows. Le workflow GitHub quality a aussi réussi depuis un clone Ubuntu (installation des dépendances, typage, 12 tests, voix/ressources, lecture Excel et captures des 14 modèles) ; le Dockerfile et l’installation finale du VPS restent à exécuter sur le serveur selon la demande utilisateur. Pas d’écoute humaine ni de lecture animée subjective annoncée. Les API sociales, comptes, ordonnanceur et synchronisation Excel du VPS restent dans deploy/TODO-VPS.md. Les deux publications historiques sont déclarées par l’utilisateur, leurs plateformes et URL restent inconnues.
+
+CI initiale réussie : https://github.com/mustafaHami/remotion-english-video/actions/runs/39562581155
