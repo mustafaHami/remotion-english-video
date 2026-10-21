@@ -1,0 +1,37 @@
+[
+  {
+    "id": "2026-10-20-option-3",
+    "date": "2026-10-20",
+    "option": 3,
+    "status": "published",
+    "content": [
+      "big / small",
+      "hot / cold",
+      "fast / slow",
+      "open / closed",
+      "happy / sad",
+      "near / far",
+      "light / dark",
+      "full / empty",
+      "early / late",
+      "strong / weak"
+    ],
+    "platforms": [],
+    "publicationUrls": [],
+    "source": "Publication confirmée par l’utilisateur le 21/10/2026 ; plateformes et liens non fournis."
+  },
+  {
+    "id": "2026-10-20-option-4",
+    "date": "2026-10-20",
+    "option": 4,
+    "status": "published",
+    "content": [
+      "Can you do me a favor? (réponse : do)",
+      "I need to make a decision. (réponse : make)",
+      "Let’s take a break. (réponse : take)"
+    ],
+    "platforms": [],
+    "publicationUrls": [],
+    "source": "Publication confirmée par l’utilisateur le 21/10/2026 ; plateformes et liens non fournis."
+  }
+]

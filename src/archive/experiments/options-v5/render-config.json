@@ -1,0 +1,56 @@
+[
+  {
+    "key": "1",
+    "option": 1,
+    "id": "TestOption1V5",
+    "title": "Présent, passé, futur.",
+    "introFrames": 150,
+    "bodyFrames": 1950,
+    "outroFrames": 210,
+    "frames": 2310,
+    "captures": [
+      45,
+      135,
+      270,
+      2070,
+      2165,
+      2275
+    ]
+  },
+  {
+    "key": "4",
+    "option": 4,
+    "id": "TestOption4V5",
+    "title": "Quel verbe manque ?",
+    "introFrames": 150,
+    "bodyFrames": 1260,
+    "outroFrames": 210,
+    "frames": 1620,
+    "captures": [
+      45,
+      135,
+      270,
+      1380,
+      1475,
+      1585
+    ]
+  },
+  {
+    "key": "9",
+    "option": 9,
+    "id": "TestOption9V5",
+    "title": "Un échange au travail.",
+    "introFrames": 150,
+    "bodyFrames": 1260,
+    "outroFrames": 210,
+    "frames": 1620,
+    "captures": [
+      45,
+      135,
+      270,
+      1380,
+      1475,
+      1585
+    ]
+  }
+]

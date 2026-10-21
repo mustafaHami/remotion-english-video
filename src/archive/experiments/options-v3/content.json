@@ -1,0 +1,68 @@
+{
+  "verbExamples":[
+    {"en":"I am ready.","fr":"Je suis prêt.","note":"I am → I’m"},
+    {"en":"She is at work.","fr":"Elle est au travail.","note":"She is → She’s"},
+    {"en":"They are on time.","fr":"Ils sont à l’heure.","note":"They are → They’re"}
+  ],
+  "gap":[
+    {"before":"Can you","after":"me a favor?","answer":"do","choices":["make","do"],"en":"Can you do me a favor?","fr":"Tu peux me rendre un service ?","note":"do someone a favor"},
+    {"before":"I need to","after":"a decision.","answer":"make","choices":["make","do"],"en":"I need to make a decision.","fr":"Je dois prendre une décision.","note":"make a decision"},
+    {"before":"Let’s","after":"a break.","answer":"take","choices":["do","take"],"en":"Let’s take a break.","fr":"Faisons une pause.","note":"take a break"}
+  ],
+  "situation":[
+    {"context":"Le repas est terminé.","choices":["The bill, please.","The addition, please."],"answer":0,"en":"The bill, please.","fr":"L’addition, s’il vous plaît.","note":"bill = l’addition"},
+    {"context":"Tu veux voir la carte.","choices":["Can we look the menu?","Can we see the menu?"],"answer":1,"en":"Can we see the menu?","fr":"Peut-on voir la carte ?","note":"see the menu / look at the menu"},
+    {"context":"Tu souhaites régler par carte.","choices":["Can I pay by card?","Can I pay in card?"],"answer":0,"en":"Can I pay by card?","fr":"Je peux payer par carte ?","note":"by card / in cash"}
+  ],
+  "contrast":[
+    {"before":"She","after":"hello.","answer":"said","choices":["said","told"],"en":"She said hello.","fr":"Elle a dit bonjour.","note":"Ici : say + ce qui est dit."},
+    {"before":"She","after":"me a story.","answer":"told","choices":["said","told"],"en":"She told me a story.","fr":"Elle m’a raconté une histoire.","note":"Ici : tell + une personne."},
+    {"before":"He","after":"me the truth.","answer":"told","choices":["told","said"],"en":"He told me the truth.","fr":"Il m’a dit la vérité.","note":"Retiens : tell someone the truth."}
+  ],
+  "associations":[
+    {"verb":"do","rest":"a favor","fr":"rendre un service","en":"Can you do me a favor?"},
+    {"verb":"make","rest":"a cake","fr":"faire un gâteau","en":"Let’s make a cake."},
+    {"verb":"take","rest":"a break","fr":"faire une pause","en":"Let’s take a break."}
+  ],
+  "corrections":[
+    {"before":"I am agree.","en":"I agree.","fr":"Je suis d’accord.","note":"agree est déjà un verbe."},
+    {"before":"She have a cat.","en":"She has a cat.","fr":"Elle a un chat.","note":"Avec she : has, au présent."},
+    {"before":"I have 20 years.","en":"I am twenty years old.","fr":"J’ai vingt ans.","note":"Pour l’âge, on utilise be."}
+  ],
+  "dialogue":[
+    {"en":"Can you do me a favor?","fr":"Tu peux me rendre un service ?"},
+    {"en":"Sure. What do you need?","fr":"Bien sûr. De quoi as-tu besoin ?"},
+    {"en":"Could you check this email?","fr":"Tu pourrais vérifier cet e-mail ?"},
+    {"en":"Of course. When do you need it?","fr":"Bien sûr. Pour quand ?"},
+    {"en":"Before lunch, if possible.","fr":"Avant le déjeuner, si possible."},
+    {"en":"No problem. I’ll read it now.","fr":"Pas de souci. Je vais le lire."},
+    {"en":"Thanks. That really helps.","fr":"Merci. Ça m’aide beaucoup."},
+    {"en":"You’re welcome.","fr":"Avec plaisir."}
+  ],
+  "listen":[
+    {"en":"The bill, please.","fr":"L’addition, s’il vous plaît."},
+    {"en":"Could you help me?","fr":"Tu pourrais m’aider ?"},
+    {"en":"Can you say that again?","fr":"Tu peux répéter ?"}
+  ],
+  "recall":[
+    {"en":"Could you help me?","fr":"Tu pourrais m’aider ?"},
+    {"en":"Could you say that again?","fr":"Tu pourrais répéter ?"},
+    {"en":"Where is the station?","fr":"Où est la gare ?"}
+  ],
+  "transfer":[
+    {"en":"Can you do me a favor?","fr":"Tu peux me rendre un service ?","prompt":"do a favor","note":"Le groupe à retenir."},
+    {"en":"I do my homework.","fr":"Je fais mes devoirs.","prompt":"I ___ my homework.","note":"do my homework"},
+    {"en":"I do the dishes.","fr":"Je fais la vaisselle.","prompt":"I ___ the dishes.","note":"do the dishes"}
+  ],
+  "phrasal":[
+    {"base":"get","particle":"off","phrase":"get off the bus","fr":"descendre du bus","en":"Get off the bus here.","kind":"bus"},
+    {"base":"pick","particle":"up","phrase":"pick up a bag","fr":"ramasser un sac","en":"Pick up your bag.","kind":"bag"},
+    {"base":"go","particle":"down","phrase":"go down the stairs","fr":"descendre les escaliers","en":"Go down the stairs.","kind":"stairs"}
+  ],
+  "verbSeries":[
+    {"verb":"be","label":"To be","forms":["I am","You are","He is","She is","It is","We are","They are"]},
+    {"verb":"have","label":"To have","forms":["I have","You have","He has","She has","It has","We have","They have"],"examples":[{"en":"I have a question.","fr":"J’ai une question.","note":"I / you / we / they → have"},{"en":"She has a car.","fr":"Elle a une voiture.","note":"He / she / it → has"},{"en":"They have time.","fr":"Ils ont le temps.","note":"have + ce que l’on a"}]},
+    {"verb":"can","label":"Can","forms":["I can","You can","He can","She can","It can","We can","They can"],"examples":[{"en":"I can swim.","fr":"Je sais nager.","note":"can + verbe sans to"},{"en":"She can drive.","fr":"Elle sait conduire.","note":"Même forme avec she : can."},{"en":"Can you help me?","fr":"Tu peux m’aider ?","note":"Question : Can + sujet + verbe ?"}]},
+    {"verb":"could","label":"Could","forms":["I could","You could","He could","She could","It could","We could","They could"],"examples":[{"en":"I could swim at five.","fr":"Je savais nager à cinq ans.","note":"Ici : une capacité dans le passé."},{"en":"She could read at four.","fr":"Elle savait lire à quatre ans.","note":"Même forme avec she : could."},{"en":"We could hear the birds.","fr":"On pouvait entendre les oiseaux.","note":"could + verbe sans to"}]}
+  ]
+}

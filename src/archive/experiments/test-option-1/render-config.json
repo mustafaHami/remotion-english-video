@@ -1,0 +1,15 @@
+{
+  "id":"TestOption1",
+  "slug":"test-option-1",
+  "filename":"test-option-1-v2.mp4",
+  "capturesDirectory":"captures-v2",
+  "qaDirectory":"qa-v2",
+  "plancheFilename":"planche-test-option-1-v2.jpg",
+  "durationInFrames":1590,
+  "fps":30,
+  "width":1080,
+  "height":1920,
+  "captures":[120,195,228,500,700,825,895,1200,1380,1450,1540,1589],
+  "overview":[120,195,228,700,825,895,1380,1589],
+  "planche":[120,228,700,825,1380,1589]
+}

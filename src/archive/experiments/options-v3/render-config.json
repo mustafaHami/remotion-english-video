@@ -1,0 +1,308 @@
+[
+  {
+    "key": "1",
+    "option": 1,
+    "verb": "be",
+    "id": "TestOption1-V3",
+    "name": "Présent, passé, futur",
+    "title": "Présent, passé, futur.",
+    "frames": 1950,
+    "captures": [
+      120,
+      255,
+      650,
+      1050,
+      1500,
+      1920
+    ],
+    "completeAt": 1770
+  },
+  {
+    "key": "2",
+    "option": 2,
+    "verb": "be",
+    "id": "TestOption2-V3",
+    "name": "Un verbe et ses pronoms",
+    "title": "To be, au présent.",
+    "frames": 1260,
+    "captures": [
+      120,
+      360,
+      530,
+      800,
+      1100,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "3",
+    "option": 3,
+    "verb": "be",
+    "id": "TestOption3-V3",
+    "name": "Les mots opposés",
+    "title": "Trouve les opposés.",
+    "frames": 1290,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1260
+    ],
+    "completeAt": 1200
+  },
+  {
+    "key": "4",
+    "option": 4,
+    "verb": "be",
+    "id": "TestOption4-V3",
+    "name": "La phrase à compléter",
+    "title": "Un mot change tout.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "5",
+    "option": 5,
+    "verb": "be",
+    "id": "TestOption5-V3",
+    "name": "L’anglais en situation",
+    "title": "L’addition, en anglais ?",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "6",
+    "option": 6,
+    "verb": "be",
+    "id": "TestOption6-V3",
+    "name": "Deux mots à ne plus confondre",
+    "title": "Say ou tell ?",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "7",
+    "option": 7,
+    "verb": "be",
+    "id": "TestOption7-V3",
+    "name": "Les mots qui vont ensemble",
+    "title": "Ces mots vont ensemble.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "8",
+    "option": 8,
+    "verb": "be",
+    "id": "TestOption8-V3",
+    "name": "Une erreur fréquente et sa correction",
+    "title": "Une petite correction.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "9",
+    "option": 9,
+    "verb": "be",
+    "id": "TestOption9-V3",
+    "name": "Un mini-dialogue du quotidien",
+    "title": "Une demande, une réponse.",
+    "frames": 1260,
+    "captures": [
+      120,
+      280,
+      450,
+      595,
+      910,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "10",
+    "option": 10,
+    "verb": "be",
+    "id": "TestOption10-V3",
+    "name": "Écoute et répète",
+    "title": "Écoute, puis répète.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "11",
+    "option": 11,
+    "verb": "be",
+    "id": "TestOption11-V3",
+    "name": "Retrouver une phrase sans choix",
+    "title": "À toi de le dire.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "12",
+    "option": 12,
+    "verb": "be",
+    "id": "TestOption12-V3",
+    "name": "Un second essai facultatif",
+    "title": "Et dans cette phrase ?",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "13",
+    "option": 13,
+    "verb": "be",
+    "id": "TestOption13-V3",
+    "name": "Le mémo visuel animé",
+    "title": "Deux expressions à garder.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "14",
+    "option": 14,
+    "verb": "be",
+    "id": "TestOption14-V3",
+    "name": "Les verbes à particule",
+    "title": "Get + off : un autre sens.",
+    "frames": 1260,
+    "captures": [
+      120,
+      250,
+      540,
+      670,
+      960,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "2-have",
+    "option": 2,
+    "verb": "have",
+    "id": "TestOption2-have-V3",
+    "name": "Un verbe et ses pronoms : have",
+    "title": "To have",
+    "frames": 1260,
+    "captures": [
+      120,
+      360,
+      530,
+      800,
+      1100,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "2-can",
+    "option": 2,
+    "verb": "can",
+    "id": "TestOption2-can-V3",
+    "name": "Un verbe et ses pronoms : can",
+    "title": "Can",
+    "frames": 1260,
+    "captures": [
+      120,
+      360,
+      530,
+      800,
+      1100,
+      1230
+    ],
+    "completeAt": 1170
+  },
+  {
+    "key": "2-could",
+    "option": 2,
+    "verb": "could",
+    "id": "TestOption2-could-V3",
+    "name": "Un verbe et ses pronoms : could",
+    "title": "Could",
+    "frames": 1260,
+    "captures": [
+      120,
+      360,
+      530,
+      800,
+      1100,
+      1230
+    ],
+    "completeAt": 1170
+  }
+]

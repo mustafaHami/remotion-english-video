@@ -1,0 +1,23 @@
+node_modules/
+.venv/
+.npm-cache/
+.remotion/
+.runtime/
+output/
+blender/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+*.local.json
+*.log
+*.tmp
+planning/*.lock
+planning/*.inspect.ndjson
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+# Cached historical audio stays local; production WAVs are versioned.
+public/audio/options*/

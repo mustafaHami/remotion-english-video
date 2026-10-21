@@ -1,0 +1,8 @@
+import bpy,json,hashlib
+from pathlib import Path
+R=Path('D:/ai-generation-video');O=R/'output/blender/renard-frontal-2d';s=bpy.context.scene;image=bpy.data.images['RÉFÉRENCE ORIGINALE · deux poses frontales'];rigs=[o for o in s.objects if o.type=='ARMATURE'];report={'file':bpy.data.filepath,'frames':[s.frame_start,s.frame_end],'fps':s.render.fps,'size':[s.render.resolution_x,s.render.resolution_y],'camera':s.camera.name,'packedImage':bool(image.packed_file),'rgba':s.render.image_settings.color_mode,'transparent':s.render.film_transparent,'puppets':[]}
+for rig in rigs:
+    meshes=[o for o in s.objects if o.type=='MESH' and any(m.type=='ARMATURE' and m.object==rig for m in o.modifiers)];report['puppets'].append({'rig':rig.name,'bones':len(rig.data.bones),'action':rig.animation_data.action.name,'meshes':len(meshes),'unweightedVertices':sum(sum(not v.groups for v in o.data.vertices) for o in meshes)})
+assert len(rigs)==2 and report['packedImage'] and report['fps']==30 and report['rgba']=='RGBA' and report['transparent'];assert all(x['bones']==22 and x['unweightedVertices']==0 for x in report['puppets']);assert report['frames']==[1,180]
+source=R/'assets/branding/renard-frontal-reference-2026-10-19.png';original=Path('C:/Users/Hami/AppData/Local/Temp/codex-clipboard-e8a96d95-7b11-446a-a483-9de999f0870b.png');report['sourceSHA256']=hashlib.sha256(source.read_bytes()).hexdigest();report['originalUnchanged']=hashlib.sha256(original.read_bytes()).hexdigest()==report['sourceSHA256'];assert report['originalUnchanged']
+(O/'verification-source.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf8');print('REOPEN_VERIFIED',json.dumps(report,ensure_ascii=False),flush=True)

@@ -1,0 +1,38 @@
+[
+  {
+    "key": "4",
+    "option": 4,
+    "id": "TestOption4V4",
+    "title": "Trois phrases à compléter.",
+    "frames": 1350,
+    "completeAt": 1260,
+    "questionDelay": 90,
+    "introEnd": 150,
+    "captures": [
+      45,
+      210,
+      340,
+      630,
+      760,
+      1320
+    ]
+  },
+  {
+    "key": "9",
+    "option": 9,
+    "id": "TestOption9V4",
+    "title": "Un échange au travail.",
+    "frames": 1260,
+    "completeAt": 1170,
+    "questionDelay": 0,
+    "introEnd": 0,
+    "captures": [
+      120,
+      280,
+      450,
+      595,
+      910,
+      1230
+    ]
+  }
+]

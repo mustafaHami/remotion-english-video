@@ -1,0 +1,12 @@
+[
+  {"present":"I am","past":"I was","future":"I will be"},
+  {"present":"I do","past":"I did","future":"I will do"},
+  {"present":"I have","past":"I had","future":"I will have"},
+  {"present":"I go","past":"I went","future":"I will go"},
+  {"present":"I see","past":"I saw","future":"I will see"},
+  {"present":"I take","past":"I took","future":"I will take"},
+  {"present":"I eat","past":"I ate","future":"I will eat"},
+  {"present":"I write","past":"I wrote","future":"I will write"},
+  {"present":"I play","past":"I played","future":"I will play"},
+  {"present":"I watch","past":"I watched","future":"I will watch"}
+]

@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Remotion English lesson",
+  "type": "object",
+  "required": [
+    "option",
+    "title",
+    "introText",
+    "timing",
+    "lessonData",
+    "narration"
+  ],
+  "properties": {
+    "option": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 14
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "introText": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lessonData": {
+      "type": "object"
+    },
+    "verb": {
+      "enum": [
+        "be",
+        "have",
+        "can",
+        "could"
+      ]
+    },
+    "writingPaths": {
+      "type": "object"
+    },
+    "timing": {
+      "type": "object",
+      "required": [
+        "introFrames",
+        "bodyFrames",
+        "outroFrames",
+        "pageFrames",
+        "answerAt",
+        "pauseAt",
+        "firstReveal",
+        "rowFrames"
+      ],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "narration": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "start",
+          "text",
+          "voice",
+          "role"
+        ],
+        "properties": {
+          "start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "duration": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "src": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "voice": {
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "intro",
+              "lesson",
+              "outro"
+            ]
+          },
+          "peaks": {
+            "type": "array",
+            "items": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+import option1 from './option-1/content.json';
+import option2 from './option-2/content.json';
+import option3 from './option-3/content.json';
+import option4 from './option-4/content.json';
+import option5 from './option-5/content.json';
+import option6 from './option-6/content.json';
+import option7 from './option-7/content.json';
+import option8 from './option-8/content.json';
+import option9 from './option-9/content.json';
+import option10 from './option-10/content.json';
+import option11 from './option-11/content.json';
+import option12 from './option-12/content.json';
+import option13 from './option-13/content.json';
+import option14 from './option-14/content.json';
+import type {LessonInput} from './types';
+export const lessons=[option1,option2,option3,option4,option5,option6,option7,option8,option9,option10,option11,option12,option13,option14] as LessonInput[];

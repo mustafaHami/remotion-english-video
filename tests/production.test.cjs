@@ -1,0 +1,17 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const {read,validate,total,duplicates}=require('../scripts/lib/lesson.cjs');
+const clone=x=>JSON.parse(JSON.stringify(x));
+const history=read('planning/publications.json');
+test('all 14 options and verb variants have matching frozen narration',()=>{for(let n=1;n<=14;n++)validate(read(`src/options/option-${n}/content.json`));for(const verb of ['have','can','could'])validate(read(`src/options/option-2/variants/${verb}.json`));});
+test('33-second option remains independent of JSON key order',()=>{const l=read('src/options/option-4/content.json');const reordered=clone(l);reordered.timing=Object.fromEntries(Object.entries(l.timing).reverse());assert.equal(total(l),990);assert.equal(total(reordered),990);});
+test('a new phrase with stale narration is rejected',()=>{const l=clone(read('src/options/option-4/content.json'));l.lessonData.gap[0].en='Can you help me?';assert.throws(()=>validate(l),/Narration does not match/);});
+test('stale audio is rejected even when both written texts were edited',()=>{const l=clone(read('src/options/option-4/content.json'));l.lessonData.gap[0]={...l.lessonData.gap[0],before:'Can you',answer:'help',after:'me?',choices:['help','make'],en:'Can you help me?'};l.narration.find(c=>c.role==='lesson').text='Can you help me?';assert.throws(()=>validate(l),/Stale voice asset/);});
+test('unsafe audio paths and overlapping clips are rejected',()=>{const l=clone(read('src/options/option-4/content.json'));l.narration[0].src='../README.md';assert.throws(()=>validate(l),/unsafe/);l.narration[0].src='audio/production/missing.wav';l.narration[1].start=3;assert.throws(()=>validate(l,{assets:false}),/Overlapping/);});
+test('a quiz cannot silently lose its thinking/answer windows',()=>{const l=clone(read('src/options/option-4/content.json'));l.timing.answerAt=164;assert.throws(()=>validate(l),/four-second/);});
+test('published examples are detected across options',()=>{assert.equal(duplicates(read('src/options/option-3/content.json'),history).length,10);assert.equal(duplicates(read('src/options/option-4/content.json'),history).length,3);const l=clone(read('src/options/option-5/content.json'));l.lessonData.situation[0].en='Can you do me a favor?';assert.equal(duplicates(l,history).length,1);});
+test('reversing an already used opposite pair is still a duplicate',()=>{const l=clone(read('src/options/option-3/content.json'));l.lessonData.opposites[0].reverse();assert.equal(duplicates(l,history).length,10);});
+test('the dialogue requires two consistent speakers',()=>{const l=clone(read('src/options/option-9/content.json'));l.narration.filter(c=>c.role==='lesson')[1].voice='en-GB-SoniaNeural';assert.throws(()=>validate(l,{assets:false}),/alternating/);});
+
+test('the new-content example is voiced and has no published duplicates',()=>{const l=validate(read('content/examples/option-4-new-content.json'));assert.deepEqual(duplicates(l,history),[]);});
+test('an uncertain or in-progress publication also blocks duplicate content',()=>{const l=read('src/options/option-4/content.json');for(const status of ['publishing','publication_uncertain'])assert.equal(duplicates(l,history.map(r=>({...r,status}))).length,3);});
+test('job fingerprint ignores JSON property order',()=>{const {fingerprint}=require('../scripts/lib/lesson.cjs');const l=read('src/options/option-4/content.json');assert.equal(fingerprint(l),fingerprint(Object.fromEntries(Object.entries(l).reverse())));});

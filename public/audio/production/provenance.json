@@ -1,0 +1,863 @@
+{
+  "acf00cb83e06fba1": {
+    "text": "Conjugue ces dix verbes.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "cdfa5ecaa4bf5d64539bfefb7b8948888ef0a4ecad5202bd6556372dda7fc12a",
+    "seconds": 1.6
+  },
+  "8f9a9ad53273e185": {
+    "text": "I am. I was.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "b3d9b38ed5a345a4782550c76c758db2d981cdee625add01e86ef903be2ecdce",
+    "seconds": 1.98
+  },
+  "4959cc5cf62a150d": {
+    "text": "I do. I did.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "ed99aac4697c98718db79a740eee550da68e46dedbb416d8ecd64b505e68eb30",
+    "seconds": 1.96
+  },
+  "fdefbd2f37c64667": {
+    "text": "I have. I had.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "745bb8a998a7517dcc512522a7ec4b00a7d526ed28e73b6110c949a9752e0ec8",
+    "seconds": 2.04
+  },
+  "0e7e248db2e18d3d": {
+    "text": "I go. I went.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "f1d210375640358559334d1f81f3efbe8f282564a723934c6d6c7fd8642a86a6",
+    "seconds": 2.02
+  },
+  "b0e99e75dd680051": {
+    "text": "I see. I saw.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "dacb7255e6e6977917e955bee3db63a210017566165dcb62d076cf1c4a4a7f22",
+    "seconds": 2.07
+  },
+  "ce2a0d6dfb78c50c": {
+    "text": "I take. I took.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "9fcc895c4f95a62af15619778f1b0fd55cf567e5c18924a4d58c15eb2feeac87",
+    "seconds": 2.06
+  },
+  "74fdb1b2e3f143a6": {
+    "text": "I eat. I ate.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "a5bd5186d1f26353ba26e4bfaf412c7337d1bf056881c9b43d8965ef8858e261",
+    "seconds": 2.03
+  },
+  "7b749df2e9e11c64": {
+    "text": "I write. I wrote.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "22000243cb990eb672deaa1c53db9c90b834cd2f8df9afad41e8e3d20f3984bb",
+    "seconds": 2.09
+  },
+  "98d54b38680472e5": {
+    "text": "I play. I played.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "16880913eae6adb19b620a63337b075cc71293ed9d547ccd046c45b7a63c6794",
+    "seconds": 2.11
+  },
+  "57232b443d87993c": {
+    "text": "I watch. I watched.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "cefeba2998ca411a433f56c1b90f770465d48c8f321876e7a24ca0c3ec735d19",
+    "seconds": 2.21
+  },
+  "fdab829e023a5b19": {
+    "text": "I will be.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "d01e582dfffb97a523db6ef3323f271d09499d3657df32b4caa97cc88c8b6801",
+    "seconds": 1.08
+  },
+  "56848f41960c98d1": {
+    "text": "I will do.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "b9c9fe16a4e3fbbb73a04e788d0d8cd981e5ba6d4fd7e7160f48180c706e4347",
+    "seconds": 1.12
+  },
+  "37e89285e4f0889e": {
+    "text": "I will have.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "452f9c801a68dec8065ff7fd5fc2582e4e8e484f12e025f577c2f21e3ab204d4",
+    "seconds": 1.19
+  },
+  "a33ee7c22ebfe48f": {
+    "text": "I will go.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "7684bc30d4bf58e5d0755aa6ce78d87cd2fea7a6ec0e15ed54133281384052b4",
+    "seconds": 1.13
+  },
+  "6615650f201f8a88": {
+    "text": "I will see.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "a934b2cf3dbc90d63999567e474a3f5930a51cfe9516afa3b5217425c1113903",
+    "seconds": 1.1
+  },
+  "1258e5fda161995d": {
+    "text": "I will take.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "4e0319303813e0c08e92a1acfd6526891749181fbbb3a9ca9880c22e8591222c",
+    "seconds": 1.17
+  },
+  "82241b3864642a53": {
+    "text": "I will eat.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "31fcacdae25e8d75071f652beb29293049033b2bfd9834ae105dfb9e96238fe9",
+    "seconds": 1.08
+  },
+  "1981a53507ce70cb": {
+    "text": "I will write.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "22a340d992875daf4ceac34fbdc80c2f71ea17c40b3fec5981a8de3c6191e4a7",
+    "seconds": 1.2
+  },
+  "f5fafd0a340442d6": {
+    "text": "I will play.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "00c673f56cbd70f6431f63a419cd02cbe1d7da6741ffe915592fc913e2e6b082",
+    "seconds": 1.17
+  },
+  "d8faeaa469eb5271": {
+    "text": "I will watch.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "7fbd6fa9d48e3a9946b58af10aa427274b800a351f9f017d3b94964c1d2bfce2",
+    "seconds": 1.28
+  },
+  "07fe07394dca2591": {
+    "text": "Bravo, tu as terminé cet exercice ! À bientôt !",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "c7ad6fc88ca4125c8b087078fa7ecbb07e5ae2ff970ba89d45f924c59ce09811",
+    "seconds": 4.31
+  },
+  "1f346b18f5e41e4b": {
+    "text": "Écoute, puis répète.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "823ef8238c3aac9178dba0fb2bd68da74e8d803f9c04c5eeb50c84071a09dba3",
+    "seconds": 1.85
+  },
+  "1e1891dd2df75b00": {
+    "text": "The bill, please.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "b5b976f2f49dccb913299ba0e69e96f2d1be8c4df983562ccf420828cdf8a862",
+    "seconds": 1.64
+  },
+  "b111db3a320999a1": {
+    "text": "Could you help me?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "9527a279bc0bb89942d81002298a715a2976a9a67c0f49416615617c2511569e",
+    "seconds": 1.27
+  },
+  "d352528f947b6cee": {
+    "text": "Can you say that again?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "4a4e2ac9954a2b8733fbd84eecc34a7c689a654b73daee772405be975dd77149",
+    "seconds": 1.64
+  },
+  "ed16c2bbc703420f": {
+    "text": "Retrouve la phrase en anglais.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "2078b99e0fe840f99ee17b0dd568bd01d48e890de2a17f3c46230dab7d84fea7",
+    "seconds": 1.72
+  },
+  "a7e31fbd467fd9de": {
+    "text": "Could you say that again?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "a300e627ad000e04091c03befe76be0853a3139c092554a81312ea0ee1ae2c5c",
+    "seconds": 1.64
+  },
+  "74d2818bb7ab3d83": {
+    "text": "Where is the station?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "0f280b4b5eb25c958c128ab801f82613a2b3c4d7813aed1a37cddb25ce76eb7e",
+    "seconds": 1.5
+  },
+  "4b8cbd4b60200dc8": {
+    "text": "Un modèle, puis à toi.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "191b7dd83c4a4b44ecd932b4bb879ac387acbf298e289878249284f1d3c68e68",
+    "seconds": 1.82
+  },
+  "d8fa3b10c6b571a3": {
+    "text": "Can you do me a favor?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "1d5257f6f46e9e301379a560660cd620e60d686c8049faec0f105898b48c6d7d",
+    "seconds": 1.61
+  },
+  "324c3c7d5b7914d7": {
+    "text": "I do my homework.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "4f19ee6e2f600d72fa3b25acd2c17ee3b0fbb94e1bbbf2f33aa5ab5037777d5a",
+    "seconds": 1.48
+  },
+  "93a5eb5637396928": {
+    "text": "I do the dishes.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "0900f089861801db70477dcbe926696e46dd8e14260ce5d5cf0d252a5aad8813",
+    "seconds": 1.47
+  },
+  "7e12aff5dbe9b929": {
+    "text": "Retiens ces trois expressions.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "922e694f689dc821180e0b51094fa08854f82915e7adbda2bb57f169ca5bbc1a",
+    "seconds": 1.79
+  },
+  "05d3fe377ef168c4": {
+    "text": "do a favor.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "68ca38a8e2260403ed4b11a8ccbd208264e4df22338b0af67aa02675decc7db6",
+    "seconds": 1.11
+  },
+  "dabc21f3f9e6f2c4": {
+    "text": "make a cake.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "365c61ecb8f1e1eecb4657151c0a44247835f8b1adcc5ea53467ab66a0874d16",
+    "seconds": 1.11
+  },
+  "deeb433de3b7faaa": {
+    "text": "Let's make a cake.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "f1197ebcd1281b2a3a2132d0cadff7a8a6a8e66994dc8998a18aa062ff7c2519",
+    "seconds": 1.41
+  },
+  "1e8254d94fc79af4": {
+    "text": "take a break.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "758273d45c2af7e405d9e73450da5614759dd091f35b5c7662f5517022f1fffc",
+    "seconds": 1.11
+  },
+  "b242c89a57ae03de": {
+    "text": "Let's take a break.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "8177c1b997971a4f8c48f5c3181d42f60a7ef901e5933dcae31572f7fe939b1c",
+    "seconds": 1.45
+  },
+  "231aa70e18bde241": {
+    "text": "Un petit mot change le sens.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "7b96cd361e95630871681b1277d1d2598bb8e1fce65d40980a64fd02b8d6dbee",
+    "seconds": 1.85
+  },
+  "e780fc55dfe60283": {
+    "text": "get off the bus.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "05d831046e90f0160265a608f9b44f81044207028f3acd748a9ad2a377456a92",
+    "seconds": 1.38
+  },
+  "07267b41d0be3395": {
+    "text": "Get off the bus here.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "d0b30b3313746e522eaf723629b2770e493e885cf25d44eafcc18ad2264bd2e5",
+    "seconds": 1.54
+  },
+  "2c328256a03d785b": {
+    "text": "pick up a bag.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "3a43e9f80cce1d9e359dffd76aac4199a84b13ad72f90e1ef3b31970bcaf4104",
+    "seconds": 1.23
+  },
+  "1f13b93c415c6f73": {
+    "text": "Pick up your bag.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "12d8aaa8ede62a0e9e23cdd3a503bfc39ac7a5f04a0c1e9dd245407b12179b7a",
+    "seconds": 1.34
+  },
+  "0a65ab52959de2f9": {
+    "text": "go down the stairs.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "91f3cc6e8a3633a61abc212ce2f5ecc62f160702ddc293ce43188f76f3a0f41f",
+    "seconds": 1.5
+  },
+  "1964ae1dd0cf7fe3": {
+    "text": "Go down the stairs.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "55ee21f4670eb8c1b4553e21e1c51f352816aba06659e76735ba75e112abd40e",
+    "seconds": 1.5
+  },
+  "ee9082676334d823": {
+    "text": "Écoute les formes du verbe.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "1c473db85f9c347520d07e20f3a2c98b6c27e3a7b15d8235c5e0c360148cac33",
+    "seconds": 1.77
+  },
+  "b7271b51b0b789c6": {
+    "text": "I am.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "430c977e4b0ee69614cc9ad8188ced7b602f18478bd2865b182a65b5bea3818e",
+    "seconds": 0.82
+  },
+  "482d33628b2a2f21": {
+    "text": "You are.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "6d27722a8489d2b0db5206b238f85affbc6e17b64fd41d5b69b5a9d4794a296d",
+    "seconds": 0.9
+  },
+  "12b1687dee65a7ec": {
+    "text": "He is.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "567565d746cf7d7832b6d1c5880a27e025777e693d8a8dea710decb4494a60d7",
+    "seconds": 0.88
+  },
+  "63d20ec3650711e4": {
+    "text": "She is.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "6ef16c0817f3a2738f92603f0c753b7c2443ab3d79212d57b01d3fe060b41d63",
+    "seconds": 0.97
+  },
+  "47e25f000b700c36": {
+    "text": "It is.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "cbe52012de6640e39a294671a6228e18b5a21a96bb91af75839dd7aeea234a61",
+    "seconds": 0.86
+  },
+  "96be1058a4a6eeba": {
+    "text": "We are.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "c718f09406bec98fd068ffc719323170ef979cdff666f08e3526d1d7c365f468",
+    "seconds": 0.86
+  },
+  "e379a253206c8455": {
+    "text": "They are.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "044dc389a8c26f6b43b025c7628638d987bf20d7e5db1788b0cc67f6858bdb91",
+    "seconds": 0.87
+  },
+  "35fb232dacbb7a5e": {
+    "text": "I am ready.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "7f621e775dca6825f61a5c62ba37380bb244d705941576e9c5d4ab19c7e92d58",
+    "seconds": 1.08
+  },
+  "dbdb9550d2016b2d": {
+    "text": "She is at work.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "f8b4d1aaae6863e910581834e181d8799b5fce6d10eafe6f81dc6e45d78d1980",
+    "seconds": 1.41
+  },
+  "b244c09070436f8a": {
+    "text": "They are on time.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "99786e9e08e89b47129345c4f07dcf91d84c41ec400a1643f842839dd7dc701b",
+    "seconds": 1.33
+  },
+  "6cb858f3ef4270df": {
+    "text": "Trouve les mots opposés.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "1e2bede1cef8f469b8b874a4e7181988af2862842a580a083b31d34bf8cda064",
+    "seconds": 1.44
+  },
+  "44cb01aea159772b": {
+    "text": "big. small.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "bc3949488c699484430c9f213c46462e471530f8a1ffe8fada3f930d29f01336",
+    "seconds": 1.73
+  },
+  "1649c66eec9c385a": {
+    "text": "hot. cold.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "856f906d6594f34172e52edbedd0f95cbe4b9290da0e7feafe8261c79718967c",
+    "seconds": 1.74
+  },
+  "0c7b890b0c3f5754": {
+    "text": "fast. slow.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "f34aee87b78d94b388f54de300a214bae655deb06c73ec53ce4343b9799cba77",
+    "seconds": 1.91
+  },
+  "d66ccd42b2706874": {
+    "text": "open. closed.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "42803e76c132e67aa1520a2175ba1bb3c8b0a143fcf8592efff1652ce308b66a",
+    "seconds": 1.94
+  },
+  "9a38dd37323ea3e2": {
+    "text": "happy. sad.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "61c58ee1e1c0ece8b98e930afd00d2355426629b3bbcc1e531ecd320ba171859",
+    "seconds": 1.74
+  },
+  "7174bc66dadcb33a": {
+    "text": "near. far.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "386c8b8ef6734a15bfe4443b2f60057b4d5b5a1767c17eeb448801276f314ac7",
+    "seconds": 1.68
+  },
+  "98d6ffc3bdbf1f39": {
+    "text": "light. dark.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "420b5ef0d2889d091d975c8d440c564cd7cc4505efd8f9a5853ec6dfc09cc396",
+    "seconds": 1.76
+  },
+  "f0520fc030e19def": {
+    "text": "full. empty.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "239c8c6b4dad220927ccd6b80e25c7a7de8363622e5b4013baf00fa49aae8e70",
+    "seconds": 1.76
+  },
+  "954211c36d2fe042": {
+    "text": "early. late.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "2a1ca13f2d1b91dc8a05c050882ac6bd5d00185adbe54a7a7040911d1b5c06ae",
+    "seconds": 1.7
+  },
+  "19a4d3fff87cb5c0": {
+    "text": "strong. weak.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "967511022d6c47f4b9506a6bee3739a6e89330e4f9b046944d153683a2d54934",
+    "seconds": 1.79
+  },
+  "ca41d0b2148080ed": {
+    "text": "Quel verbe manque ?",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "423051fae0a9f87025710de1f047d9ecd4f7173d1c44d6d41b8032bbe2563252",
+    "seconds": 1.29
+  },
+  "cafa72e5fcd6e2e7": {
+    "text": "I need to make a decision.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "3131419308b85032dacb6268d2c6679c7cd2d659bd9979afee2c94b9a95a63c4",
+    "seconds": 1.77
+  },
+  "4939b02cba495643": {
+    "text": "Que dis-tu au restaurant ?",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "bb25b76cf16942da53f77dceecc29b78df0d6118b74a0f30bad9011eb4fb9da8",
+    "seconds": 1.43
+  },
+  "639560d7c8314a6e": {
+    "text": "Can we see the menu?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "b33cb87d4835cfab8b295cce04ef7d6cb843451b2cf988a7fad6e6f1beb87fc0",
+    "seconds": 1.6
+  },
+  "d60a9ce47a440d96": {
+    "text": "Can I pay by card?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "cbea046811956db730a1b9bde1e2a4cd000e19a216426c5ec1daeb3eb62409f4",
+    "seconds": 1.6
+  },
+  "34576f2174ad045b": {
+    "text": "Say ou tell ? Choisis.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "c5814009bebcd0b70083c6a32f2f03c1eaa4e3a2bc250b16ddf4edb8b9590b17",
+    "seconds": 2.58
+  },
+  "2b45d8713815b5cb": {
+    "text": "She said hello.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "1dbc2f594e8b34ced58a2587507207dd14aa9565accb1025730b4747832395e7",
+    "seconds": 1.34
+  },
+  "901e528f8a91435c": {
+    "text": "She told me a story.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "220843c502449295aa6dd3b09980a4437e10060c7b5c0b4997125701925916b6",
+    "seconds": 1.67
+  },
+  "51c8ca870b948aed": {
+    "text": "He told me the truth.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "32809210030a6633573e5b37473fbae863ef2b3b8db18684a38a679c2f7904c9",
+    "seconds": 1.65
+  },
+  "9be050c5508430d4": {
+    "text": "Associe les mots.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "376d79433b89786625675643790ccda5f33816e293fd9db65b3e7780c86e29f9",
+    "seconds": 1.11
+  },
+  "c7ec04c12f484749": {
+    "text": "Corrige ces phrases.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "af9ecfec949d966cdce9380d15b2f73d3dc3a0a5abb10a061ccb66c6b3daa612",
+    "seconds": 1.43
+  },
+  "f99f8e6b704f1d0b": {
+    "text": "I agree.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "f40c7786d5074ac5cb189d18891c0d05671ce331598472c0ebbcb8248e1d0dd1",
+    "seconds": 1.0
+  },
+  "a29eb4350826f73c": {
+    "text": "She has a cat.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "227d04226f08e5f81130fd5819401eb89752f684c14dd3366c556c4d661baee7",
+    "seconds": 1.35
+  },
+  "8b1a8781ea813637": {
+    "text": "I am twenty years old.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "96fee1bffcec7cd7b47258c0614dd48537b8ad3d700916e2ada0254b924f08f1",
+    "seconds": 1.78
+  },
+  "6b595dcc5b3d83e7": {
+    "text": "Un échange au travail. Tu es prêt ?",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "aa32cc230a22cc2742142d28c2ec16f8681bf27c9a647540cef0e4a41bc2246e",
+    "seconds": 3.21
+  },
+  "8768b9de2212b276": {
+    "text": "Sure. What do you need?",
+    "voice": "en-GB-RyanNeural",
+    "rate": "-5%",
+    "sha256": "d36dd9eae4c6615229929c27d225193ed5bae80b005a855cf7913e36010396bb",
+    "seconds": 2.54
+  },
+  "48d24bed6813e45a": {
+    "text": "Could you check this email?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "ddbc266c6263c8070d13dc6d4349d6d0e7e05b1a71f830edff2a1a4683c2b83e",
+    "seconds": 1.75
+  },
+  "32b2902029ec381f": {
+    "text": "Of course. When do you need it?",
+    "voice": "en-GB-RyanNeural",
+    "rate": "-5%",
+    "sha256": "9e54321c6ca38b6127fd6ebd2aa62f5b40d899e5af0b47187cbf64e9e7c4320e",
+    "seconds": 2.92
+  },
+  "3b87ca84daed443f": {
+    "text": "Before lunch, if possible.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "4c17758f004a1013cdd33c00a7245010ebc4398290e757739c971cc59a288e23",
+    "seconds": 2.21
+  },
+  "0d96e6032a194f11": {
+    "text": "No problem. I'll read it now.",
+    "voice": "en-GB-RyanNeural",
+    "rate": "-5%",
+    "sha256": "b5c571064c81b0ac94a8c63bc112d6e984d7fab5b05ae17f58b7c2770cdb30f1",
+    "seconds": 2.92
+  },
+  "3b87252789954bc6": {
+    "text": "Thanks. That really helps.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "d738deeabc16a64b8c8f95ca42dcb52f5cd6d45bc78f176d705dfb158c629914",
+    "seconds": 2.6
+  },
+  "24787899b1e07fd6": {
+    "text": "You're welcome.",
+    "voice": "en-GB-RyanNeural",
+    "rate": "-5%",
+    "sha256": "d197e0a6c32dcad3bc05bdd96747c9535aab5d37db55ba1d511ce955056abf41",
+    "seconds": 1.01
+  },
+  "0636d12fdee9c61f": {
+    "text": "I have.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "5a2dac4c8023160fd1fe06e31b1458a8340ff7e95855ffd193476fcc29b54e4f",
+    "seconds": 0.97
+  },
+  "b14ee8df450863e0": {
+    "text": "You have.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "57f06bc0de46fcfaa90eeddda0d49dff8631903fd7d6a9d2f82ab1325ec642fc",
+    "seconds": 0.98
+  },
+  "016c82fc3fef7a5a": {
+    "text": "He has.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "449224ddee4a8b86764f632a9c3b8cc472e4d416bfbb8aa2690f0ed44fceaa54",
+    "seconds": 0.92
+  },
+  "fa4d7362905acc2f": {
+    "text": "She has.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "277c2b1462905aefcb9abf681d6f611f9b159ee3cc6c2cd4d096b3ff35c6d76f",
+    "seconds": 1.0
+  },
+  "2e91ce3ba529536e": {
+    "text": "It has.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "193bb0c31f32e8726b89baef88caa148a558e64fecb7350096e42cab724922da",
+    "seconds": 0.96
+  },
+  "582fc28109f2f718": {
+    "text": "We have.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "a4ec31008b9b7cb669b68dffbca513f5970dd3a23215d94c76e9dce6f2e0d9ed",
+    "seconds": 1.0
+  },
+  "fc79d663ae4aa59d": {
+    "text": "They have.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "dbf5430987a59f68df359603912eb3ec51cfca8a50edb7c09819f6b1fe9089b0",
+    "seconds": 0.96
+  },
+  "1ab11ce06e8b3eff": {
+    "text": "I have a question.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "299c5939e2a76a5024374756f6bf8dcb96857c321ed302c5713e176223202c1e",
+    "seconds": 1.38
+  },
+  "8aec2127bfe0905a": {
+    "text": "She has a car.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "eb9c11c91c2057f1a60bb880e9f763c06864d7e34a343f15dc7098da7433667e",
+    "seconds": 1.32
+  },
+  "d1cd98ce3934f09a": {
+    "text": "They have time.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "736f0833cc8e84d65d90be4ed058ad77d8313d87d4b82a0140ad200ed8f82c90",
+    "seconds": 1.19
+  },
+  "563d0140650b2982": {
+    "text": "I can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "752033b6f21b1cb06d123728de4629f8879ba58fb0c7eed05755e954be0aed8a",
+    "seconds": 0.92
+  },
+  "f793cdf99864c3ad": {
+    "text": "You can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "16f73aefabcdeb81b36b2b05556b6133e48fc39c7ffc26c1c2026634e28f2f6a",
+    "seconds": 0.93
+  },
+  "08b104bab95d2333": {
+    "text": "He can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "363f73200ba1b18242df5c101f9079a111983125796c1819a411ad3304c947e4",
+    "seconds": 0.92
+  },
+  "c5652eacecb730ba": {
+    "text": "She can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "98996c3b85e400c3602ebc17dca6d6f884a2a064b8f833a05cad9dc404617be8",
+    "seconds": 0.98
+  },
+  "8ca79e8e578a2ef7": {
+    "text": "It can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "ebde3a5af92ab6a45dce34d91192b0bd08330ed9d8eccaa549f937c5d0dbfa45",
+    "seconds": 0.96
+  },
+  "62d32c8b214b4690": {
+    "text": "We can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "c7ffb0b4a88977b944126741abdbf9ddd807b2b69eb44bf7b664417dbe1ae10e",
+    "seconds": 0.97
+  },
+  "25eba34e7a6fbfce": {
+    "text": "They can.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "1b0c1c1ff133145c200fe99439c436a6efdf08666445c855ecf229aa18703ed4",
+    "seconds": 0.94
+  },
+  "73e645735ca7774d": {
+    "text": "I can swim.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "151c8edd731c47ec297f4410e2b88b27826d6737e3076018da206901878e1c2a",
+    "seconds": 1.22
+  },
+  "cfd3fd64e32bcd7c": {
+    "text": "She can drive.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "e675d1eed3c5216682116455159c31f23c26a6fc7695904f4409461ce0793c9e",
+    "seconds": 1.35
+  },
+  "b28a3e8867d2da47": {
+    "text": "Can you help me?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "eb71dfb02d46f8df60f4ee1b8e1930c1631d9a0586f9d237403f6e1242ea15a4",
+    "seconds": 1.26
+  },
+  "3fd83fb4e2d79f76": {
+    "text": "I could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "8419fe60e21b6f9446d2657682daab15de3ff2231a83ac9c397a973764c3190a",
+    "seconds": 0.9
+  },
+  "0f47e8af851f3ebb": {
+    "text": "You could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "917d80d73bd221ab40d82519e059c04343dbc2422b6feff8c6b3cded59132e85",
+    "seconds": 0.9
+  },
+  "f66882ff249c24b3": {
+    "text": "He could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "7a5ecae767f4204bac7544ab4a74d5ed24c609455271d6d8640f827106c8292b",
+    "seconds": 0.9
+  },
+  "c0cc726953d2f29e": {
+    "text": "She could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "ef8699270def6b2edc9441e7fbb8a0f535c62008aa73a2fd0dbad2dc00eb83af",
+    "seconds": 0.97
+  },
+  "c45bcd845e14a789": {
+    "text": "It could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "0b0ba6f6be1827b13f97f623d089fa73a9157333c65bec812aeadcfde56ad6df",
+    "seconds": 0.92
+  },
+  "f838038e34d8fd6a": {
+    "text": "We could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "bfd9b2a23bf25d6e28f0107e3d0680b8e11ea7e757f2be74167310e4baaa9584",
+    "seconds": 0.93
+  },
+  "12e5aaf0746fe8ac": {
+    "text": "They could.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "435a3651ec17712e6776b223c5bf188602e588e581a2a312995f260143d37133",
+    "seconds": 0.9
+  },
+  "51d609d49d6dd4d2": {
+    "text": "I could swim at five.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "a3c0a4547030f58f7f6549d3205f7962986c4d083a3a8649c319fd1f21e4d0ff",
+    "seconds": 1.68
+  },
+  "88a8b48a56cd0074": {
+    "text": "She could read at four.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "23a86884f60b9ea92c373e03bd1e3b4afb388aad9beaa5908cf50c06e8bbb453",
+    "seconds": 1.62
+  },
+  "abab6461cbd337e2": {
+    "text": "We could hear the birds.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "10da66c63fe57264f68424c5ac5d90f364101057959861ebe6c63080ea341e76",
+    "seconds": 1.65
+  },
+  "9a72beb3d08ca52d": {
+    "text": "I want to learn English.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "efb9a440cfb028082485c81c0f5afcbad41b9817a84496a9036be269d0acd14e",
+    "seconds": 1.73
+  },
+  "949d83e445e1b63f": {
+    "text": "Could you open the window?",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "c902b381bd0a512afd7fb9068430b08d31b55d7aa7d48cbd30c5060f62fb2c46",
+    "seconds": 1.69
+  },
+  "2e80c220ffdbbf3a": {
+    "text": "We need to leave now.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "11a2e3c8b85d05cc86b39d6c69c6b9e978ce3d503b3f81dc79b6f96486007369",
+    "seconds": 1.5
+  }
+}

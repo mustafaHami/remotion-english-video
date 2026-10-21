@@ -1,0 +1,15 @@
+[
+  {"option":2,"title":"To be, au présent.","name":"Un verbe et ses pronoms","frames":900,"captures":[90,195,270,450,640,870],"completeAt":650},
+  {"option":3,"title":"Trouve les opposés.","name":"Les mots opposés","frames":1110,"captures":[90,195,300,600,960,1080],"completeAt":940},
+  {"option":4,"title":"Un mot change tout.","name":"La phrase à compléter","frames":660,"captures":[90,195,285,330,450,630],"completeAt":470},
+  {"option":5,"title":"L’addition, en anglais ?","name":"L’anglais en situation","frames":720,"captures":[90,195,285,330,510,690],"completeAt":520},
+  {"option":6,"title":"Say ou tell ?","name":"Deux mots à ne plus confondre","frames":810,"captures":[90,195,285,420,570,780],"completeAt":600},
+  {"option":7,"title":"Ces mots vont ensemble.","name":"Les mots qui vont ensemble","frames":810,"captures":[90,195,285,420,570,780],"completeAt":620},
+  {"option":8,"title":"Une petite correction.","name":"Une erreur fréquente et sa correction","frames":600,"captures":[90,195,270,310,390,570],"completeAt":400},
+  {"option":9,"title":"Une demande, une réponse.","name":"Un mini-dialogue du quotidien","frames":690,"captures":[90,195,285,330,480,660],"completeAt":500},
+  {"option":10,"title":"Écoute, puis répète.","name":"Écoute et répète","frames":660,"captures":[90,150,255,360,450,630],"completeAt":530},
+  {"option":11,"title":"À toi de le dire.","name":"Retrouver une phrase sans choix","frames":600,"captures":[90,195,270,315,420,570],"completeAt":430},
+  {"option":12,"title":"Et dans cette phrase ?","name":"Un second essai facultatif","frames":840,"captures":[90,210,330,450,600,810],"completeAt":640},
+  {"option":13,"title":"Deux expressions à garder.","name":"Le mémo visuel animé","frames":720,"captures":[90,195,285,390,510,690],"completeAt":540},
+  {"option":14,"title":"Get + off : un autre sens.","name":"Les verbes à particule","frames":750,"captures":[90,195,285,360,510,720],"completeAt":550}
+]

@@ -1,0 +1,100 @@
+[
+  {
+    "option": 1,
+    "id": "Option1",
+    "name": "Présent, passé, futur",
+    "seconds": 73.5,
+    "path": "src/options/option-1/content.json"
+  },
+  {
+    "option": 2,
+    "id": "Option2",
+    "name": "Un verbe et ses pronoms",
+    "seconds": 50.5,
+    "path": "src/options/option-2/content.json"
+  },
+  {
+    "option": 3,
+    "id": "Option3",
+    "name": "Les mots opposés",
+    "seconds": 42.5,
+    "path": "src/options/option-3/content.json"
+  },
+  {
+    "option": 4,
+    "id": "Option4",
+    "name": "La phrase à compléter",
+    "seconds": 33.0,
+    "path": "src/options/option-4/content.json"
+  },
+  {
+    "option": 5,
+    "id": "Option5",
+    "name": "L’anglais en situation",
+    "seconds": 34.0,
+    "path": "src/options/option-5/content.json"
+  },
+  {
+    "option": 6,
+    "id": "Option6",
+    "name": "Deux mots à ne plus confondre",
+    "seconds": 34.0,
+    "path": "src/options/option-6/content.json"
+  },
+  {
+    "option": 7,
+    "id": "Option7",
+    "name": "Les mots qui vont ensemble",
+    "seconds": 34.0,
+    "path": "src/options/option-7/content.json"
+  },
+  {
+    "option": 8,
+    "id": "Option8",
+    "name": "Une erreur fréquente et sa correction",
+    "seconds": 34.0,
+    "path": "src/options/option-8/content.json"
+  },
+  {
+    "option": 9,
+    "id": "Option9",
+    "name": "Un mini-dialogue du quotidien",
+    "seconds": 51.5,
+    "path": "src/options/option-9/content.json"
+  },
+  {
+    "option": 10,
+    "id": "Option10",
+    "name": "Écoute et répète",
+    "seconds": 50.5,
+    "path": "src/options/option-10/content.json"
+  },
+  {
+    "option": 11,
+    "id": "Option11",
+    "name": "Retrouver une phrase sans choix",
+    "seconds": 34.0,
+    "path": "src/options/option-11/content.json"
+  },
+  {
+    "option": 12,
+    "id": "Option12",
+    "name": "Un second essai facultatif",
+    "seconds": 34.0,
+    "path": "src/options/option-12/content.json"
+  },
+  {
+    "option": 13,
+    "id": "Option13",
+    "name": "Le mémo visuel animé",
+    "seconds": 50.5,
+    "path": "src/options/option-13/content.json"
+  },
+  {
+    "option": 14,
+    "id": "Option14",
+    "name": "Les verbes à particule",
+    "seconds": 34.0,
+    "path": "src/options/option-14/content.json"
+  }
+]

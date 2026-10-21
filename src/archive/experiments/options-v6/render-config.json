@@ -1,0 +1,23 @@
+[
+  {
+    "key": "4",
+    "option": 4,
+    "id": "TestOption4V6",
+    "title": "Quel verbe manque ?",
+    "introFrames": 60,
+    "bodyFrames": 585,
+    "outroFrames": 150,
+    "frames": 795,
+    "pageFrames": 195,
+    "answerAt": 135,
+    "pauseAt": 45,
+    "captures": [
+      30,
+      140,
+      210,
+      405,
+      600,
+      745
+    ]
+  }
+]

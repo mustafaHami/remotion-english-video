@@ -1,0 +1,602 @@
+[
+  {
+    "option": "2-have",
+    "text": "I have.",
+    "start": 72
+  },
+  {
+    "option": "2-have",
+    "text": "You have.",
+    "start": 120
+  },
+  {
+    "option": "2-have",
+    "text": "He has.",
+    "start": 168
+  },
+  {
+    "option": "2-have",
+    "text": "She has.",
+    "start": 216
+  },
+  {
+    "option": "2-have",
+    "text": "It has.",
+    "start": 264
+  },
+  {
+    "option": "2-have",
+    "text": "We have.",
+    "start": 312
+  },
+  {
+    "option": "2-have",
+    "text": "They have.",
+    "start": 360
+  },
+  {
+    "option": "2-have",
+    "text": "I have a question.",
+    "start": 515
+  },
+  {
+    "option": "2-have",
+    "text": "She has a car.",
+    "start": 785
+  },
+  {
+    "option": "2-have",
+    "text": "They have time.",
+    "start": 1055
+  },
+  {
+    "option": "2-can",
+    "text": "I can.",
+    "start": 72
+  },
+  {
+    "option": "2-can",
+    "text": "You can.",
+    "start": 120
+  },
+  {
+    "option": "2-can",
+    "text": "He can.",
+    "start": 168
+  },
+  {
+    "option": "2-can",
+    "text": "She can.",
+    "start": 216
+  },
+  {
+    "option": "2-can",
+    "text": "It can.",
+    "start": 264
+  },
+  {
+    "option": "2-can",
+    "text": "We can.",
+    "start": 312
+  },
+  {
+    "option": "2-can",
+    "text": "They can.",
+    "start": 360
+  },
+  {
+    "option": "2-can",
+    "text": "I can swim.",
+    "start": 515
+  },
+  {
+    "option": "2-can",
+    "text": "She can drive.",
+    "start": 785
+  },
+  {
+    "option": "2-can",
+    "text": "Can you help me?",
+    "start": 1055
+  },
+  {
+    "option": "2-could",
+    "text": "I could.",
+    "start": 72
+  },
+  {
+    "option": "2-could",
+    "text": "You could.",
+    "start": 120
+  },
+  {
+    "option": "2-could",
+    "text": "He could.",
+    "start": 168
+  },
+  {
+    "option": "2-could",
+    "text": "She could.",
+    "start": 216
+  },
+  {
+    "option": "2-could",
+    "text": "It could.",
+    "start": 264
+  },
+  {
+    "option": "2-could",
+    "text": "We could.",
+    "start": 312
+  },
+  {
+    "option": "2-could",
+    "text": "They could.",
+    "start": 360
+  },
+  {
+    "option": "2-could",
+    "text": "I could swim at five.",
+    "start": 515
+  },
+  {
+    "option": "2-could",
+    "text": "She could read at four.",
+    "start": 785
+  },
+  {
+    "option": "2-could",
+    "text": "We could hear the birds.",
+    "start": 1055
+  },
+  {
+    "option": 1,
+    "text": "I am. I was.",
+    "start": 216
+  },
+  {
+    "option": 1,
+    "text": "I will be.",
+    "start": 1152
+  },
+  {
+    "option": 1,
+    "text": "I do. I did.",
+    "start": 291
+  },
+  {
+    "option": 1,
+    "text": "I will do.",
+    "start": 1212
+  },
+  {
+    "option": 1,
+    "text": "I have. I had.",
+    "start": 366
+  },
+  {
+    "option": 1,
+    "text": "I will have.",
+    "start": 1272
+  },
+  {
+    "option": 1,
+    "text": "I go. I went.",
+    "start": 441
+  },
+  {
+    "option": 1,
+    "text": "I will go.",
+    "start": 1332
+  },
+  {
+    "option": 1,
+    "text": "I see. I saw.",
+    "start": 516
+  },
+  {
+    "option": 1,
+    "text": "I will see.",
+    "start": 1392
+  },
+  {
+    "option": 1,
+    "text": "I take. I took.",
+    "start": 591
+  },
+  {
+    "option": 1,
+    "text": "I will take.",
+    "start": 1452
+  },
+  {
+    "option": 1,
+    "text": "I eat. I ate.",
+    "start": 666
+  },
+  {
+    "option": 1,
+    "text": "I will eat.",
+    "start": 1512
+  },
+  {
+    "option": 1,
+    "text": "I write. I wrote.",
+    "start": 741
+  },
+  {
+    "option": 1,
+    "text": "I will write.",
+    "start": 1572
+  },
+  {
+    "option": 1,
+    "text": "I play. I played.",
+    "start": 816
+  },
+  {
+    "option": 1,
+    "text": "I will play.",
+    "start": 1632
+  },
+  {
+    "option": 1,
+    "text": "I watch. I watched.",
+    "start": 891
+  },
+  {
+    "option": 1,
+    "text": "I will watch.",
+    "start": 1692
+  },
+  {
+    "option": 2,
+    "text": "I am.",
+    "start": 72
+  },
+  {
+    "option": 2,
+    "text": "You are.",
+    "start": 120
+  },
+  {
+    "option": 2,
+    "text": "He is.",
+    "start": 168
+  },
+  {
+    "option": 2,
+    "text": "She is.",
+    "start": 216
+  },
+  {
+    "option": 2,
+    "text": "It is.",
+    "start": 264
+  },
+  {
+    "option": 2,
+    "text": "We are.",
+    "start": 312
+  },
+  {
+    "option": 2,
+    "text": "They are.",
+    "start": 360
+  },
+  {
+    "option": 2,
+    "text": "I am ready.",
+    "start": 515
+  },
+  {
+    "option": 2,
+    "text": "She is at work.",
+    "start": 785
+  },
+  {
+    "option": 2,
+    "text": "They are on time.",
+    "start": 1055
+  },
+  {
+    "option": 3,
+    "text": "big. small.",
+    "start": 228
+  },
+  {
+    "option": 3,
+    "text": "hot. cold.",
+    "start": 318
+  },
+  {
+    "option": 3,
+    "text": "fast. slow.",
+    "start": 408
+  },
+  {
+    "option": 3,
+    "text": "open. closed.",
+    "start": 498
+  },
+  {
+    "option": 3,
+    "text": "happy. sad.",
+    "start": 588
+  },
+  {
+    "option": 3,
+    "text": "near. far.",
+    "start": 678
+  },
+  {
+    "option": 3,
+    "text": "light. dark.",
+    "start": 768
+  },
+  {
+    "option": 3,
+    "text": "full. empty.",
+    "start": 858
+  },
+  {
+    "option": 3,
+    "text": "early. late.",
+    "start": 948
+  },
+  {
+    "option": 3,
+    "text": "strong. weak.",
+    "start": 1038
+  },
+  {
+    "option": 4,
+    "text": "Can you do me a favor?",
+    "start": 235
+  },
+  {
+    "option": 4,
+    "text": "I need to make a decision.",
+    "start": 655
+  },
+  {
+    "option": 4,
+    "text": "Let’s take a break.",
+    "start": 1075
+  },
+  {
+    "option": 5,
+    "text": "The bill, please.",
+    "start": 235
+  },
+  {
+    "option": 5,
+    "text": "Can we see the menu?",
+    "start": 655
+  },
+  {
+    "option": 5,
+    "text": "Can I pay by card?",
+    "start": 1075
+  },
+  {
+    "option": 6,
+    "text": "She said hello.",
+    "start": 235
+  },
+  {
+    "option": 6,
+    "text": "She told me a story.",
+    "start": 655
+  },
+  {
+    "option": 6,
+    "text": "He told me the truth.",
+    "start": 1075
+  },
+  {
+    "option": 8,
+    "text": "I agree.",
+    "start": 235
+  },
+  {
+    "option": 8,
+    "text": "She has a cat.",
+    "start": 655
+  },
+  {
+    "option": 8,
+    "text": "I am twenty years old.",
+    "start": 1075
+  },
+  {
+    "option": 11,
+    "text": "Could you help me?",
+    "start": 235
+  },
+  {
+    "option": 11,
+    "text": "Could you say that again?",
+    "start": 655
+  },
+  {
+    "option": 11,
+    "text": "Where is the station?",
+    "start": 1075
+  },
+  {
+    "option": 12,
+    "text": "Can you do me a favor?",
+    "start": 95
+  },
+  {
+    "option": 12,
+    "text": "I do my homework.",
+    "start": 655
+  },
+  {
+    "option": 12,
+    "text": "I do the dishes.",
+    "start": 1075
+  },
+  {
+    "option": 7,
+    "text": "do a favor.",
+    "start": 125
+  },
+  {
+    "option": 7,
+    "text": "Can you do me a favor?",
+    "start": 235
+  },
+  {
+    "option": 13,
+    "text": "do a favor.",
+    "start": 155
+  },
+  {
+    "option": 13,
+    "text": "Can you do me a favor?",
+    "start": 265
+  },
+  {
+    "option": 7,
+    "text": "make a cake.",
+    "start": 545
+  },
+  {
+    "option": 7,
+    "text": "Let’s make a cake.",
+    "start": 655
+  },
+  {
+    "option": 13,
+    "text": "make a cake.",
+    "start": 545
+  },
+  {
+    "option": 13,
+    "text": "Let’s make a cake.",
+    "start": 655
+  },
+  {
+    "option": 7,
+    "text": "take a break.",
+    "start": 965
+  },
+  {
+    "option": 7,
+    "text": "Let’s take a break.",
+    "start": 1075
+  },
+  {
+    "option": 13,
+    "text": "take a break.",
+    "start": 935
+  },
+  {
+    "option": 13,
+    "text": "Let’s take a break.",
+    "start": 1045
+  },
+  {
+    "option": 9,
+    "text": "Can you do me a favor?",
+    "start": 45
+  },
+  {
+    "option": 9,
+    "text": "Sure. What do you need?",
+    "start": 195
+  },
+  {
+    "option": 9,
+    "text": "Could you check this email?",
+    "start": 360
+  },
+  {
+    "option": 9,
+    "text": "Of course. When do you need it?",
+    "start": 510
+  },
+  {
+    "option": 9,
+    "text": "Before lunch, if possible.",
+    "start": 675
+  },
+  {
+    "option": 9,
+    "text": "No problem. I’ll read it now.",
+    "start": 825
+  },
+  {
+    "option": 9,
+    "text": "Thanks. That really helps.",
+    "start": 990
+  },
+  {
+    "option": 9,
+    "text": "You’re welcome.",
+    "start": 1140
+  },
+  {
+    "option": 10,
+    "text": "The bill, please.",
+    "start": 55
+  },
+  {
+    "option": 10,
+    "text": "The bill, please.",
+    "start": 310
+  },
+  {
+    "option": 10,
+    "text": "Could you help me?",
+    "start": 475
+  },
+  {
+    "option": 10,
+    "text": "Could you help me?",
+    "start": 730
+  },
+  {
+    "option": 10,
+    "text": "Can you say that again?",
+    "start": 895
+  },
+  {
+    "option": 10,
+    "text": "Can you say that again?",
+    "start": 1150
+  },
+  {
+    "option": 14,
+    "text": "get off the bus.",
+    "start": 160
+  },
+  {
+    "option": 14,
+    "text": "Get off the bus here.",
+    "start": 275
+  },
+  {
+    "option": 14,
+    "text": "pick up a bag.",
+    "start": 580
+  },
+  {
+    "option": 14,
+    "text": "Pick up your bag.",
+    "start": 695
+  },
+  {
+    "option": 14,
+    "text": "go down the stairs.",
+    "start": 1000
+  },
+  {
+    "option": 14,
+    "text": "Go down the stairs.",
+    "start": 1115
+  }
+]

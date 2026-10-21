@@ -1,0 +1,12 @@
+.git
+node_modules
+.venv
+.npm-cache
+.remotion
+.runtime
+output
+blender
+.env
+.env.*
+**/__pycache__
+public/audio/options*

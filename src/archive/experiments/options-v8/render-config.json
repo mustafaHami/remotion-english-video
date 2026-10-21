@@ -1,0 +1,22 @@
+[
+  {
+    "key": "3",
+    "option": 3,
+    "id": "TestOption3V8",
+    "title": "Dix mots, leurs opposés.",
+    "introFrames": 60,
+    "bodyFrames": 1050,
+    "outroFrames": 165,
+    "frames": 1275,
+    "firstReveal": 150,
+    "rowFrames": 90,
+    "captures": [
+      30,
+      150,
+      230,
+      680,
+      1080,
+      1220
+    ]
+  }
+]
