@@ -8,6 +8,14 @@ Utiliser le renard de face (`FrontalFoxMascot refinedMotion`) et `MascotBookend`
 
 Le contenu doit être clair, utile et adapté à un niveau accessible. Une vidéo traite un thème ; les formats à phrases peuvent contenir trois exemples. Dix paires pour l’option 3, dix verbes pour l’option 1, huit répliques pour l’option 9. Les exemples servent de fixtures, pas de contenu inédit à republier.
 
+## Création à la demande
+
+Utiliser le skill `create-english-video` pour recueillir l’option et le brief manquants. Une demande directe n’exige pas une cellule Excel renseignée, mais l’historique et le planning doivent être consultés pour éviter les doublons. Les étapes ci-dessous restent celles du traitement quotidien planifié.
+
+`npm run video:new -- --option=N` crée un brouillon distinct et réserve `output/options/option-N/<date_heure>/creation.json` (Europe/Paris, suffixe en cas de collision). Après adaptation du contenu et de la narration, `npm run video:new -- --render="<creation.json>"` prépare l’audio, rend et vérifie. Les états draft, preparing, rendering, rendered, verified ou failed décrivent uniquement la fabrication. Les dates UTC du rendu et du contrôle complètent la date locale de création. La revue visuelle et l’écoute effectivement effectuées doivent être annoncées séparément. Aucun historique de publication n’est modifié par ce script.
+
+Un dossier contenant déjà un MP4 est conservé : créer une nouvelle demande pour une révision. Après une erreur avant production du MP4, corriger l’épisode puis relancer la même demande ; un verrou indique un traitement encore actif ou à examiner après un incident.
+
 ## Déroulement quotidien
 
 1. Lire la date explicite Europe/Paris et le brief de la cellule de l’option dans l’Excel. Une cellule vide n’autorise pas à inventer un planning.
