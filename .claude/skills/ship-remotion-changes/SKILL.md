@@ -1,6 +1,6 @@
 ---
 name: ship-remotion-changes
-description: Préparer un commit et un push des modifications de ce projet en respectant ses contrôles, sa branche et ses exclusions de fichiers.
+description: Préparer un commit et une livraison sur main en respectant les contrôles, les protections GitHub et les exclusions du projet.
 ---
 
-Lire CONTRIBUTING.md. Vérifier la branche et git status ; préserver les travaux sans rapport. Exécuter les contrôles requis et les rendus touchés. Inspecter git diff --check, les secrets et les fichiers ajoutés ; ne pas inclure output, caches ou Blender. Commit descriptif, push normal sur branche dédiée et pull request après le premier import. Un push ou une fusion doit rester dans l’autorisation donnée par l’utilisateur ; ce skill n’autorise pas une publication sociale ni un déploiement.
+Lire CONTRIBUTING.md. Choix utilisateur confirmé le 23 octobre 2026 : main est la branche de travail et de livraison par défaut, sans branches permanentes supplémentaires. Vérifier la branche, actualiser les références et préserver les travaux locaux sans rapport. Exécuter les contrôles requis et les rendus touchés. Inspecter git diff --check, les secrets et les fichiers ajoutés ; ne pas inclure output, caches ou Blender. Commit descriptif et push normal. Si les protections GitHub exigent une PR et la CI, utiliser une branche temporaire, attendre les contrôles et fusionner par squash uniquement avec autorisation de fusion. Après vérification de main, supprimer la branche intégrée lorsque le nettoyage est autorisé et synchroniser le checkout. Ne pas désactiver les protections ni faire de force push. Une demande de push ne vaut pas automatiquement autorisation de fusion. Ce skill n’autorise ni publication sociale ni déploiement.

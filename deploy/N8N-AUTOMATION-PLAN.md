@@ -26,7 +26,7 @@ Les règles actives prévalent sur les anciens briefs et archives. Les messages,
 
 La création guidée et ce plan ont été intégrés dans `main`. La commande `npm run video:new`, le script `scripts/create-video.cjs` et le skill demandant uniquement le numéro d’option sont désormais présents dans cette branche, avec les règles de sélection autonome d’un contenu inédit.
 
-L’ancienne séparation entre branches de création guidée et d’automatisation est supprimée pour cette livraison, à la demande de l’utilisateur. Les ajustements locaux du skill et de la documentation ont été conservés dans la consolidation. Les consignes permanentes de contribution restent inchangées.
+L’ancienne séparation entre branches de création guidée et d’automatisation est supprimée pour cette livraison, à la demande de l’utilisateur. Les ajustements locaux du skill et de la documentation ont été conservés dans la consolidation. La préférence de livraison sur main a été confirmée le 23 octobre 2026 ; les protections GitHub restent applicables (voir CONTRIBUTING.md).
 
 Sur le VPS, vérifier d’abord `git status`, récupérer `origin/main`, puis effectuer une mise à jour sans écrasement (fast-forward si possible). La copie du serveur n’est pas mise à jour par le seul push GitHub. Vérifier les scripts réellement présents et résoudre les éventuelles divergences avant de brancher la production.
 
@@ -41,7 +41,7 @@ Sur le VPS, vérifier d’abord `git status`, récupérer `origin/main`, puis ef
 | Docker | Test hello-world réussi |
 | n8n | Interface accessible depuis le PC par tunnel SSH à `http://localhost:5678` ; compte propriétaire, version, volumes et configuration à inspecter |
 | Adresse prévue | `n8n.mhd-projects.cloud` |
-| Signalement Google | Propriété `mhd-projects.cloud` validée dans Search Console ; alerte « Pages trompeuses » sans exemple d’URL ; résultat du réexamen non confirmé |
+| Signalement Google | Propriété validée ; email Google présenté par l’utilisateur le 23 octobre 2026 : réexamen réussi, avertissements en cours de suppression (plusieurs heures possibles). Disparition effective dans le navigateur à vérifier |
 | Vérification Hostinger | Le support rapporte des DNS pointant vers le VPS et aucune page HTTP/HTTPS servie lors de son contrôle antérieur à cette installation n8n ; ce contrôle n’est pas un audit actuel |
 | Buffer | Trois comptes connectés ; publications manuelles testées ; connexion API depuis le VPS non confirmée |
 | Telegram | Bot, jeton, identifiants autorisés et workflow non confirmés |

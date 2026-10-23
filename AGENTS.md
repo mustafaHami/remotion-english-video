@@ -27,7 +27,7 @@
 - Une vérification TypeScript ne constitue pas une validation vidéo. Distinguer inspection d’images, décodage technique et écoute/lecture subjective réellement effectuée.
 
 ## Git et limites
-- Suivre CONTRIBUTING.md. Pour les changements après import initial : branche dédiée, fichiers ciblés, vérifications, commit descriptif, push normal et pull request.
+- Suivre CONTRIBUTING.md. Choix utilisateur confirmé le 23 octobre 2026 : main est la branche de travail et de livraison par défaut. Fichiers ciblés, vérifications, commit descriptif et push normal. Si GitHub impose une PR, utiliser une branche temporaire, attendre la CI, puis la supprimer après fusion autorisée ; ne pas désactiver les protections.
 - Pas de force push ou de suppression d’historique. Aucun secret, cache, MP4 ou séquence Blender dans Git.
 - Préserver les anciens travaux locaux et les autres options lors d’une correction ciblée.
 - Déploiement, comptes sociaux et ordonnanceur : TODO sur le VPS, voir deploy/TODO-VPS.md. Ne pas les déclarer configurés sans preuve.
