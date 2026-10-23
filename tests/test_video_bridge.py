@@ -118,7 +118,7 @@ class VideoBridgeTests(unittest.TestCase):
         self.app.route('n8n', '/outbox/receipt', {'id': video['id'], 'messageId': 77, 'chatId': 101})
         self.app = Application(self.config)
         store = Store(self.config['database'])
-        self.assertEqual(store.get(job['id'])['status'], 'awaiting_review')
+        self.assertEqual(store.get(job['id'])['status'], 'pending_validation')
         self.assertIsNone(store.get(job['id'])['approval'])
         self.assertEqual(store.db.execute('SELECT COUNT(*) FROM preview_media').fetchone()[0], 1)
         store.close()

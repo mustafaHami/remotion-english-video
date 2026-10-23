@@ -8,6 +8,7 @@
 
 ## Travail quotidien
 - Consulter planning/calendrier-publications.xlsx et planning/publications.json avant de proposer un contenu.
+- Lire aussi planning/production.json : signaler les vidéos pending_validation ou validated qui restent à traiter avant de proposer une nouvelle création. Une validation de prévisualisation n'est pas une publication.
 - Options 3/4 publiées le 20/10/2026 : éviter les mêmes paires et phrases. Ne pas confondre réutilisation d’un verbe courant et duplication d’un exercice.
 - Créer un fichier distinct dans content/episodes ; ne pas modifier les modèles ou les fixtures pour chaque vidéo.
 - Synchroniser lessonData, narration.text, voice et timing ; préparer les WAV avec scripts/prepare-audio.py. Une voix doit correspondre au texte visible.

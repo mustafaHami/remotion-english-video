@@ -96,6 +96,13 @@ configs = {
     'worker': {'bridge': f'http://{gateway}:8787', 'stateDir': '/var/lib/englizy-worker/jobs',
                'videoEnabled': video_enabled, 'mediaRoot': str(media_root)},
 }
+# Conserver les réglages de suivi explicitement activés par l'opérateur.
+old_bridge = config_dir / 'bridge.json'
+if old_bridge.exists():
+    previous_bridge = json.loads(old_bridge.read_text())
+    for key in ['planningIndex', 'dailySummaryTime']:
+        if key in previous_bridge:
+            configs['bridge'][key] = previous_bridge[key]
 for kind, value in configs.items():
     user = pwd.getpwnam('englizy-' + kind)
     path = config_dir / (kind + '.json')

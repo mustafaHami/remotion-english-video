@@ -22,6 +22,51 @@
       }
     },
     {
+      "id": "daily-summary-clock",
+      "name": "Récapitulatif quotidien à 09h Paris",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        450
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "daily-summary-request",
+      "name": "Préparer le récapitulatif du jour",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        450
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/daily-summary",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
       "id": "notification-reserve",
       "name": "Réserver les notifications sans doublon",
       "type": "n8n-nodes-base.httpRequest",
@@ -204,13 +249,35 @@
         -290
       ],
       "parameters": {
-        "content": "## Transport technique uniquement\nScrutation toutes les 10 secondes, aucun rappel quotidien. Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. Les succès de scrutation ne sont pas conservés dans n8n ; erreurs conservées, reçus durables dans SQLite. Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.",
+        "content": "## Notifications et suivi\nScrutation technique toutes les 10 secondes. Récapitulatif quotidien à 09h Europe/Paris autorisé par l’utilisateur. Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. Les succès de scrutation ne sont pas conservés dans n8n ; erreurs conservées, reçus durables dans SQLite. Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.",
         "width": 850,
         "height": 230
       }
     }
   ],
   "connections": {
+    "Récapitulatif quotidien à 09h Paris": {
+      "main": [
+        [
+          {
+            "node": "Préparer le récapitulatif du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le récapitulatif du jour": {
+      "main": [
+        [
+          {
+            "node": "Réserver les notifications sans doublon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Consulter les notifications en attente": {
       "main": [
         [

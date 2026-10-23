@@ -66,6 +66,11 @@ write('telegram-ingress', 'Englizy — Réception Telegram et tâches durables',
 
 timer = node('notification-poll', 'Consulter les notifications en attente', 'scheduleTrigger', 1.2, 0,
              {'rule': {'interval': [{'field': 'seconds', 'secondsInterval': 10}]}})
+daily = node('daily-summary-clock', 'Récapitulatif quotidien à 09h Paris', 'scheduleTrigger', 1.2, 0,
+             {'rule': {'interval': [{'field': 'cronExpression', 'expression': '0 9 * * *'}]}})
+daily['position'] = [0, 450]
+daily_request = http('daily-summary-request', 'Préparer le récapitulatif du jour', '/daily-summary', '{}', 300)
+daily_request['position'] = [300, 450]
 reserve = http('notification-reserve', 'Réserver les notifications sans doublon', '/outbox/claim',
                '={{ JSON.stringify({dispatchId:String($execution.id)}) }}', 300)
 split = node('notification-split', 'Préparer chaque notification', 'splitOut', 1, 600,
@@ -98,12 +103,13 @@ receipt = http('notification-receipt', 'Conserver le reçu Telegram', '/outbox/r
     '={{ JSON.stringify({id:$("Préparer chaque notification").item.json.notification.id, '
     'messageId:$json.message_id ?? $json.result?.message_id, chatId:$json.chat?.id ?? $json.result?.chat?.id}) }}', 1200)
 receipt['position'] = [1780, 100]
-write('telegram-notifications', 'Englizy — Questions et résultats vers Telegram', [timer, reserve, split, is_video, download, video_send, send, receipt], {
+write('telegram-notifications', 'Englizy — Questions et résultats vers Telegram', [timer, daily, daily_request, reserve, split, is_video, download, video_send, send, receipt], {
+    daily['name']: {'main': [[link(daily_request['name'])]]}, daily_request['name']: {'main': [[link(reserve['name'])]]},
     timer['name']: {'main': [[link(reserve['name'])]]}, reserve['name']: {'main': [[link(split['name'])]]},
     split['name']: {'main': [[link(is_video['name'])]]}, is_video['name']: {'main': [[link(download['name'])], [link(send['name'])]]},
     download['name']: {'main': [[link(video_send['name'])]]}, video_send['name']: {'main': [[link(receipt['name'])]]},
     send['name']: {'main': [[link(receipt['name'])]]}},
-    '## Transport technique uniquement\nScrutation toutes les 10 secondes, aucun rappel quotidien. '
+    '## Notifications et suivi\nScrutation technique toutes les 10 secondes. Récapitulatif quotidien à 09h Europe/Paris autorisé par l’utilisateur. '
     'Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. '
     'Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. '
     'Les succès de scrutation ne sont pas conservés dans n8n ; erreurs conservées, reçus durables dans SQLite. '

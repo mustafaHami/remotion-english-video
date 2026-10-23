@@ -8,6 +8,32 @@ import sqlite3
 import uuid
 from functools import wraps
 import re
+import os
+
+
+def connect_as_owner(path, readonly=False):
+    """Maintenance mono-thread : les fichiers WAL gardent l'UID du service DB."""
+    uid = Path(path).stat().st_uid
+    @contextmanager
+    def owner():
+        previous = os.geteuid()
+        if previous == 0 and uid != previous:
+            os.seteuid(uid)
+        try:
+            yield
+        finally:
+            if os.geteuid() != previous:
+                os.seteuid(previous)
+    class Connection(sqlite3.Connection):
+        def execute(self, *args, **kwargs):
+            with owner():
+                return super().execute(*args, **kwargs)
+        def executescript(self, *args, **kwargs):
+            with owner():
+                return super().executescript(*args, **kwargs)
+    with owner():
+        return sqlite3.connect('file:' + str(path) + ('?mode=ro' if readonly else '?mode=rw'),
+                               uri=True, factory=Connection, timeout=15, isolation_level=None)
 
 
 def now():
@@ -30,9 +56,9 @@ def atomic(method):
 
 
 class Store:
-    def __init__(self, path):
+    def __init__(self, path, owner_permissions=False):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(path, timeout=15, isolation_level=None)
+        self.db = connect_as_owner(path) if owner_permissions else sqlite3.connect(path, timeout=15, isolation_level=None)
         self.db.row_factory = sqlite3.Row
         self.db.execute('PRAGMA journal_mode=WAL')
         self.db.execute('PRAGMA synchronous=FULL')
@@ -72,11 +98,15 @@ class Store:
             media TEXT NOT NULL, PRIMARY KEY(job,revision));
         ''')
         columns = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
-        for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT')]:
+        for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT'),
+                                 ('validated_at', 'TEXT'), ('shared_at', 'TEXT'), ('closed_at', 'TEXT'),
+                                 ('review', 'TEXT'), ('sharing', 'TEXT'), ('media_deleted_at', 'TEXT'), ('purged_at', 'TEXT')]:
             if name not in columns:
                 self.db.execute(f'ALTER TABLE jobs ADD COLUMN {name} {definition}')
         if 'lease' not in {r[1] for r in self.db.execute('PRAGMA table_info(worker_claims)')}:
             self.db.execute('ALTER TABLE worker_claims ADD COLUMN lease TEXT')
+        self.db.execute("UPDATE jobs SET status='pending_validation' WHERE status='awaiting_review'")
+        self.db.execute("UPDATE jobs SET closed_at=updated WHERE kind='probe' AND status='completed' AND closed_at IS NULL")
 
     def close(self):
         self.db.close()
@@ -108,6 +138,44 @@ class Store:
         if type(owner) is not int or type(chat) is not int or (job['owner'], job['chat']) != (owner, chat):
             raise PermissionError('Compte ou conversation non autorisé.')
         return job
+
+    def outstanding(self, owner, chat):
+        return [dict(r) for r in self.db.execute("""SELECT id,revision,option,status,question,kind FROM jobs
+            WHERE owner=? AND chat=? AND purged_at IS NULL AND
+            ((kind='video' AND status NOT IN ('shared','published','cancelled')) OR status='needs_input')
+            ORDER BY updated,id""", (owner, chat))]
+
+    @atomic
+    def validate_preview(self, job_id, revision, owner, chat, source='Telegram /valider'):
+        job = self.owned(job_id, owner, chat)
+        if job['revision'] != revision or job['status'] not in ['pending_validation', 'validated']:
+            raise ValueError('Validation impossible : vérifier la tâche et la version envoyée.')
+        if job['status'] == 'validated':
+            return {'jobId': job_id, 'status': 'validated', 'revision': revision}
+        media = self.db.execute('SELECT media FROM preview_media WHERE job=? AND revision=?', (job_id, revision)).fetchone()
+        delivery = self.db.execute('SELECT status FROM outbox WHERE id=?', (f'ready:{job_id}:{revision}',)).fetchone()
+        if not media or not delivery or delivery['status'] != 'sent':
+            raise ValueError('La vidéo doit être envoyée avant validation.')
+        at = now()
+        review = {'revision': revision, 'videoSha256': json.loads(media[0])['originalSha256'], 'at': at, 'source': source}
+        self.db.execute("UPDATE jobs SET status='validated',validated_at=?,review=?,updated=? WHERE id=?",
+                        (at, json.dumps(review), at, job_id))
+        self.audit(job_id, 'preview-validated', review)
+        return {'jobId': job_id, 'status': 'validated', 'revision': revision}
+
+    @atomic
+    def confirm_shared(self, job_id, revision, owner, chat, evidence):
+        """Enregistre une publication terminée, jamais un simple envoi Telegram."""
+        job = self.owned(job_id, owner, chat)
+        if job['revision'] != revision or job['status'] != 'validated':
+            raise ValueError('Seule la version validée peut être déclarée partagée.')
+        if (evidence.get('source') not in ['explicit-user-confirmation', 'platform-receipts']
+                or evidence.get('allDestinationsConfirmed') is not True or not evidence.get('confirmation')):
+            raise ValueError('Confirmation de publication terminée sur les réseaux requise.')
+        at = now()
+        self.db.execute("UPDATE jobs SET status='shared',shared_at=?,closed_at=?,sharing=?,updated=? WHERE id=?",
+                        (at, at, json.dumps(evidence), at, job_id))
+        self.audit(job_id, 'shared', evidence)
 
     def audit(self, job_id, action, data=None):
         self.db.execute('INSERT INTO audit(job,action,at,data) VALUES(?,?,?,?)',
@@ -193,6 +261,8 @@ class Store:
                 (status, actual_session, question_id, json.dumps(result), now(), job_id))
             self.db.execute('UPDATE revisions SET result=? WHERE job=? AND revision=?',
                             (json.dumps(result), job_id, revision))
+            if job['kind'] == 'probe' and status == 'completed':
+                self.db.execute('UPDATE jobs SET closed_at=? WHERE id=?', (now(), job_id))
             self.audit(job_id, status)
 
     @atomic
@@ -241,10 +311,10 @@ class Store:
     @atomic
     def revise(self, job_id, revision, owner, chat, brief):
         job = self.owned(job_id, owner, chat)
-        if job['revision'] != revision or job['status'] not in ['awaiting_preview', 'awaiting_approval', 'approved', 'failed']:
+        if job['revision'] != revision or job['status'] not in ['awaiting_preview', 'pending_validation', 'validated', 'awaiting_approval', 'approved', 'failed']:
             raise ValueError('Révision indisponible ou obsolète.')
         self.db.execute("""UPDATE jobs SET revision=revision+1,status='queued',question=NULL,
-            snapshot=NULL,approval=NULL,brief=?,updated=? WHERE id=?""", (brief, now(), job_id))
+            snapshot=NULL,approval=NULL,review=NULL,validated_at=NULL,brief=?,updated=? WHERE id=?""", (brief, now(), job_id))
         self.db.execute('INSERT INTO revisions(job,revision) VALUES(?,?)', (job_id, revision + 1))
         self.audit(job_id, 'revised', {'previousRevision': revision})
         return {'jobId': job_id, 'revision': revision + 1, 'status': 'queued'}
@@ -252,9 +322,10 @@ class Store:
     @atomic
     def cancel(self, job_id, revision, owner, chat):
         job = self.owned(job_id, owner, chat)
-        if job['revision'] != revision or job['status'] in ['generating', 'publishing', 'publication_unknown', 'published', 'scheduled', 'partially_published']:
+        if job['revision'] != revision or job['status'] in ['generating', 'publishing', 'publication_unknown', 'published', 'shared', 'scheduled', 'partially_published']:
             raise ValueError('Traitement engagé : vérification manuelle nécessaire.')
-        self.db.execute("UPDATE jobs SET status='cancelled',approval=NULL,updated=? WHERE id=?", (now(), job_id))
+        at = now()
+        self.db.execute("UPDATE jobs SET status='cancelled',approval=NULL,closed_at=?,updated=? WHERE id=?", (at, at, job_id))
         self.audit(job_id, 'cancelled')
         return {'jobId': job_id, 'status': 'cancelled'}
 
@@ -286,7 +357,7 @@ class Store:
             item = self.db.execute('SELECT job,payload FROM outbox WHERE id=?', (outbox_id,)).fetchone()
             payload = json.loads(item['payload'])
             if status == 'sent' and payload.get('kind') == 'ready':
-                self.db.execute("UPDATE jobs SET status='awaiting_review',updated=? WHERE id=? AND revision=? AND status='awaiting_preview'",
+                self.db.execute("UPDATE jobs SET status='pending_validation',updated=? WHERE id=? AND revision=? AND status='awaiting_preview'",
                                 (now(), item['job'], payload['revision']))
                 self.audit(item['job'], 'preview-delivered', receipt)
 

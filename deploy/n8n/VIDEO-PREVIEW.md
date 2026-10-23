@@ -1,6 +1,6 @@
 # Création vidéo et prévisualisation privée
 
-Étape autorisée après le diagnostic Telegram/Codex. Buffer, les destinations sociales et les horaires de publication restent déconnectés. Aucun bouton de publication n'est exposé.
+Étape autorisée après le diagnostic Telegram/Codex. Évolution des états, suivi Excel et rétention : [TRACKING.md](TRACKING.md). Buffer, les destinations sociales et les horaires de publication restent déconnectés. Aucun bouton de publication n'est exposé.
 
 ## Parcours
 
@@ -11,7 +11,7 @@
 5. Le runner vérifie les chemins, manifeste, contenu, empreinte, pistes audio/vidéo, dimensions, durée et rapports. Il relance le contrôle technique ; l'inspection d'images reste une action de l'agent à constater séparément. Une écoute subjective absente est annoncée.
 6. Le worker prépare une copie privée du MP4 dans `/var/lib/englizy-media/<job>/r<révision>/preview.mp4`. Sous 47 Mio, copie identique ; au-delà, copie réduite en 720 × 1280, H.264/AAC, sans toucher à l'original. Une copie encore trop grande provoque un échec explicite. L'empreinte du fichier envoyé et celle de l'original sont distinctes et persistées.
 7. n8n télécharge cette seule copie via une route interne authentifiée, puis son nœud **Envoyer la prévisualisation MP4** utilise `sendVideo` avec le binaire. Aucun dossier public ni URL de média publique n'est créé. Le bridge vérifie l'empreinte avant chaque téléchargement.
-8. Le reçu Telegram fait passer le job de `awaiting_preview` à `awaiting_review`. Cet état n'est **pas** une approbation de publication. Aucun accord social n'est créé.
+8. Le reçu Telegram fait passer le job de `awaiting_preview` à `pending_validation` (anciennement `awaiting_review`). Cet état n'est **pas** une approbation de publication. Aucun accord social n'est créé.
 
 ## Comptes et fichiers
 

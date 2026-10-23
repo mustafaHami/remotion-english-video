@@ -11,6 +11,7 @@ import html
 
 from .store import Store, digest, now
 from . import media
+from . import tracking
 
 
 class Application:
@@ -31,6 +32,8 @@ class Application:
     def options(self, store):
         if not self.config.get('videoEnabled', False):
             raise ValueError('La création vidéo n’est pas encore activée.')
+        if any(r['kind'] == 'video' for r in tracking.outstanding(store, self.config)):
+            raise ValueError('Une vidéo reste à traiter avant une nouvelle création. Envoyez /encours pour la retrouver.')
         root = Path(os.environ.get('ENGLIZY_REPO', Path(__file__).resolve().parents[1]))
         catalog = json.loads((root / 'src/options/catalog.json').read_text())
         if {item['option'] for item in catalog} != set(range(1, 15)):
@@ -59,6 +62,8 @@ class Application:
         if choice['job']:
             job = store.get(choice['job'])
             return {'jobId': job['id'], 'status': job['status'], 'alreadySelected': True}
+        if any(r['kind'] == 'video' for r in tracking.outstanding(store, self.config)):
+            raise ValueError('Une vidéo reste à traiter. Envoyez /encours ; aucune nouvelle création lancée.')
         job = store.create(self.config['owner'], self.config['chat'], option, 'Création directe depuis Telegram. Prévisualisation uniquement.', kind='video')
         store.db.execute('UPDATE option_choices SET job=? WHERE id=?', (job['jobId'], identifier))
         store.emit('queued:' + job['jobId'], job['jobId'], {'kind': 'text', 'jobId': job['jobId'],
@@ -85,6 +90,24 @@ class Application:
                 return {'accepted': True, 'jobId': job_id}
 
             try:
+                if text.strip() == '/encours':
+                    return tracking.emit_summary(store, self.config, 'summary-event:' + str(event_id))
+                match = re.fullmatch(r'/valider\s+([a-f0-9]{12})\s+([1-9][0-9]*)', text.strip())
+                if match:
+                    result = store.validate_preview(match[1], int(match[2]), sender['id'], chat['id'])
+                    reply('Vidéo validée, prête à partager. Aucune autorisation de publication enregistrée.', match[1])
+                    return result
+                match = re.fullmatch(r'/partage\s+([a-f0-9]{12})\s+([1-9][0-9]*)\s+CONFIRME\s+(.+)', text.strip(), re.DOTALL)
+                if match:
+                    details = match[3].strip()
+                    platforms = [name for name in ['Instagram','TikTok','YouTube'] if name.lower() in details.lower()]
+                    urls = re.findall(r'https://[^\s<>]+', details)
+                    store.confirm_shared(match[1], int(match[2]), sender['id'], chat['id'], {
+                        'source':'explicit-user-confirmation', 'allDestinationsConfirmed':True,
+                        'confirmation':'Utilisateur : publication terminée sur les réseaux. ' + details,
+                        'platforms':platforms, 'urls':urls})
+                    reply('Publication terminée enregistrée : shared, tâche close. MP4 conservé 10 jours, détails de tâche 15 jours.', match[1])
+                    return {'jobId':match[1], 'status':'shared'}
                 if 'callback_query' in update:
                     match = re.fullmatch(r'video:([a-f0-9]{12}):(\d{1,2})', update['callback_query'].get('data', ''))
                     if match:
@@ -136,7 +159,7 @@ class Application:
                     result = store.answer(job_id, question_id, sender['id'], chat['id'], answer)
                     reply(f'Réponse enregistrée pour {job_id}. Reprise de sa session Codex.', job_id)
                     return result
-                return reply('Commandes : /video pour choisir un format, /diagnostic, /statut <tâche>, /question <tâche>. Aucune publication automatique.')
+                return reply('Commandes : /encours, /video, /statut <tâche>, /question <tâche>, /valider <tâche> <version>. Aucune publication automatique.')
             except ValueError as error:
                 return reply(str(error))
 
@@ -149,6 +172,8 @@ class Application:
         store = Store(self.config['database'])
         try:
             if role == 'n8n':
+                if path == '/daily-summary':
+                    return tracking.daily_summary(store, self.config)
                 if path == '/telegram':
                     return self.ingest(store, body)
                 if path == '/diagnostics':
@@ -193,7 +218,8 @@ class Application:
                                        + '\nContrôle technique et inspection d’images effectués.'
                                        + ('\nÉcoute subjective non effectuée.' if not job['result']['checks']['subjectiveListening'] else '')
                                        + ('\nCopie compressée pour Telegram ; original conservé.' if item['compressed'] else '\nMP4 original, sans compression supplémentaire par le VPS.')
-                                       + '\nÀ regarder avant la suite. Aucune publication.')
+                                       + f"\nAprès lecture : /valider {job['id']} {payload['revision']}"
+                                       + '\nAucune publication.')
                             note['text'] = html.escape(caption)
                         notifications.append(note)
                     return {'notifications': notifications}
@@ -264,7 +290,7 @@ class Application:
         store = Store(self.config['database'])
         try:
             job = store.get(job_id)
-            if job['revision'] != revision or job['status'] not in ['awaiting_preview', 'awaiting_review']:
+            if job['revision'] != revision or job['status'] not in ['awaiting_preview', 'pending_validation', 'validated']:
                 raise ValueError('Version vidéo indisponible.')
             row = store.db.execute('SELECT media FROM preview_media WHERE job=? AND revision=?', (job_id, revision)).fetchone()
             if not row:
