@@ -21,7 +21,7 @@ Remotion Studio affiche `Option1` à `Option14`. Il n’y a pas de nouveau proje
 
 ## Créer une vidéo avec l’agent
 
-Lancer `$create-english-video` dans Codex (ou `/create-english-video` dans Claude Code). Le skill demande l’option parmi les 14 formats, puis le thème, le niveau et les contenus imposés ou à proposer. Les réglages visuels et les voix validés sont conservés par défaut. Il prépare ensuite le contenu, les voix, le rendu et les contrôles.
+Lancer `$create-english-video` dans Codex (ou `/create-english-video` dans Claude Code). Tu choisis uniquement l’option parmi les 14 formats. Le skill consulte toutes les entrées de sa colonne dans l’Excel, le Journal, l’historique JSON et les épisodes existants, puis choisit un sujet et des exercices différents. Il annonce son choix et poursuit la création sans te demander de fournir le contenu. Les réglages visuels et les voix validés sont conservés par défaut. Il prépare ensuite le contenu, les voix, le rendu et les contrôles.
 
 Chaque réalisation possède son dossier, par exemple `output/options/option-4/2026-10-21_14-35-07/option-4.mp4`. `creation.json` indique l’heure de création en Europe/Paris, les dates UTC de fin de rendu et de contrôle ainsi que l’état réel du traitement. Les précédentes vidéos sont conservées ; un rendu n’est pas une publication.
 
