@@ -1,6 +1,6 @@
 # Intégration n8n — relevé VPS du 23 octobre 2026
 
-Ce relevé décrit une première tranche. La chaîne Telegram → production → prévisualisation → Buffer n'est pas encore opérationnelle. Aucun rappel quotidien ni publication sociale n'est activé.
+HTTPS, Telegram et le lancement d'un diagnostic Codex sont opérationnels. Une question réelle a été envoyée par n8n et conservée après redémarrage ; la réponse Telegram reste attendue pour vérifier la reprise de bout en bout. La production vidéo, la prévisualisation et Buffer ne sont pas encore opérationnels. Aucun rappel quotidien ni publication sociale n'est activé.
 
 ## Installation conservée et accès
 
@@ -40,7 +40,11 @@ Le script inspecte les chemins du conteneur au lieu de supposer un volume neuf. 
 
 Un démarrage réel de cette sauvegarde a aussi réussi avec `sudo python3 scripts/test-n8n-restore.py /var/backups/englizy/20261023T132207439537Z` : même image déjà présente, copie temporaire des données, réseau Docker `none`, aucun port publié, aucun volume de production monté. Le propriétaire restauré est reconnu et `/healthz/readiness` répond. Les workflows de la copie sont désactivés avant démarrage. Le conteneur de test et la copie temporaire ont ensuite été retirés ; le rapport `restore-boot-check.json` reste dans la sauvegarde. Cette sauvegarde initiale ne contenant pas encore d'identifiants, ce test ne prouve pas leur déchiffrement futur.
 
-Une seconde sauvegarde cohérente a réussi après réception du code Telegram : `/var/backups/englizy/20261023T162623329351Z`, avec un utilisateur, deux workflows et un identifiant. Son extraction, son intégrité SQLite et sa clé ont été contrôlées. Le démarrage isolé de cette seconde sauvegarde n'est pas encore testé.
+Une seconde sauvegarde cohérente a réussi après réception du code Telegram : `/var/backups/englizy/20261023T162623329351Z`, avec un utilisateur, deux workflows et un identifiant. Son extraction, son intégrité SQLite et sa clé ont été contrôlées. Cette sauvegarde est désormais complétée par celle décrite ci-dessous.
+
+La sauvegarde `/var/backups/englizy/20261023T165902267076Z` contient n8n et `automation-state.tar.gz` pris pendant le même arrêt des trois services. L'archive privée comprend les états bridge/worker, les configurations `/etc/englizy`, les secrets de gestion et le cache d'authentification Codex du compte de service. Elle contient donc des secrets et doit rester en `0600`, dans un dossier `0700`. Les processus ont été redémarrés et la question en attente conservée avec la même session. Le 23 octobre, un démarrage de la copie n8n a réussi avec réseau `none`, aucun port ni volume de production, et workflows désactivés dans la copie. L'extraction de l'état d'automatisation a aussi confirmé l'intégrité SQLite, la question, la session exacte et les permissions du cache d'authentification. Aucun worker restauré n'a été lancé. Rapports : `restore-boot-check.json` et `automation-restore-check.json` dans cette sauvegarde. Le test n'a pas déchiffré ni utilisé les identifiants Telegram.
+
+`backup-n8n.py` ne sauvegarde que n8n. Pour une sauvegarde complète, attendre qu'aucune génération ni publication ne soit engagée, arrêter l'entrée n8n, revérifier la file, puis arrêter les services bridge/worker et archiver leurs états avec n8n avant de redémarrer les trois services. Ne pas déduire une cohérence interservices de deux archives prises à des instants différents. Les futurs épisodes/audio/MP4 demanderont une sauvegarde supplémentaire ; aucun média n'a été créé par ces diagnostics.
 
 Pour revenir aux URL privées, sauvegarder d'abord l'état courant, comparer le Compose sauvegardé au Compose actuel, rétablir uniquement les variables d'URL concernées, puis `docker compose -f /root/services/n8n/compose.yaml up -d --no-deps --pull never n8n`. Désactiver le site nginx si nécessaire. Ne pas restaurer la vieille base sur les données actuelles : cela perdrait les identifiants et workflows créés depuis. Ne jamais utiliser `docker compose down -v`.
 
@@ -94,34 +98,73 @@ Parcours d'association et de test :
 
 État réellement vérifié : le workflow d'association **MkrDsOiJttrknu0M** a reçu le code privé, exécution n8n **4**, puis a été désactivé. Le webhook a refusé une requête sans secret (`403`) et est redevenu inconnu (`404`) après désactivation. L'utilisateur a explicitement confirmé son compte. Les IDs numériques et la preuve d'association restent dans `/var/lib/englizy/management`, hors Git.
 
-Le workflow de test privé **riwxDWD1DzItHGAx** est installé, lié à l'identifiant n8n existant et activé avec les filtres sur l'utilisateur et la conversation confirmés. Son webhook refuse les requêtes sans secret. La réception d'un message `test` et l'envoi de sa réponse par le nœud Telegram restent à constater. Les exports génériques ont des filtres à `0` qui refusent tous les comptes tant que l'installateur ne les a pas renseignés.
+Le test privé **riwxDWD1DzItHGAx** a réellement reçu un message et envoyé la réponse par le nœud Telegram : exécution **5** réussie, reçu Telegram conservé hors Git. Il est maintenant **désactivé**, comme l'association et le test HTTPS.
 
-**Limite relevée dans le code installé :** le Telegram Trigger 1.5 active `drop_pending_updates` lors de son enregistrement. Ces workflows conviennent à l'association et au test ponctuel, mais ne constituent pas encore le récepteur durable de production. Avant cette étape, choisir et tester un webhook n8n préservant les updates en attente, le secret Telegram et le filtrage des callbacks. Un seul récepteur reste actif pour un bot ; aucun deuxième poller VPS n'est prévu.
+Le récepteur durable utilise le **Telegram Trigger 1.2**, livré dans l'image actuelle. Le contrôle `docker exec -i n8n-n8n-1 node < scripts/test-telegram-trigger.cjs` vérifie en simulation sur le nœud installé `drop_pending_updates=false`, la transmission des callbacks authentifiés et le refus d'un mauvais secret. Les filtres natifs anciens ne sont pas utilisés : un IF explicite contrôle utilisateur, conversation et type privé pour messages et callbacks, puis le bridge vérifie à nouveau l'identité. Le webhook réel refuse les requêtes sans secret (`403`), y compris après redémarrage. La réception d'un message réellement arrivé pendant une coupure n'a pas encore été testée.
 
-Une piste native est vérifiée **en simulation sur le nœud installé** : `docker exec -i n8n-n8n-1 node < scripts/test-telegram-trigger.cjs`. Le Telegram Trigger **1.2**, déjà livré dans l'image actuelle, enregistre `drop_pending_updates=false`, transmet les callbacks authentifiés au workflow et refuse un mauvais secret (`403`). Le test utilise des identifiants fictifs et remplace les appels réseau ; il n'envoie aucune requête à Telegram. Cette configuration n'est pas encore déployée. Ne pas utiliser ses anciens filtres natifs pour les callbacks : ajouter ensuite un nœud IF vérifiant explicitement les IDs utilisateur et conversation, ainsi que le type de conversation privée, puis refaire les tests réels et le redémarrage avant production.
+| Workflow | ID | État |
+| --- | --- | --- |
+| Réception Telegram et tâches durables | `ypqdFC3lJ6UP2nj0` | Actif, seul récepteur de ce bot |
+| Questions et résultats vers Telegram | `i3qVaC6RQOB6wuqT` | Actif, notifications via nœud Telegram |
+| Lancer un diagnostic Codex sans vidéo | `dFCuaedtvxhzK6tg` | Actif, webhook HTTPS authentifié |
 
-## Lanceur Codex et état durable : préparés, pas installés comme services
+Les exports dans `deploy/n8n/workflows` restent génériques : aucun secret ni identité personnelle. `scripts/build-automation-workflows.py` les reconstruit. `scripts/install-codex-workflows.py --activate` les installe en utilisant les références privées, sans lire le jeton Telegram ; il conserve les workflows déjà référencés plutôt que d'écraser leurs modifications. Il refuse un second récepteur actif. Le workflow de notifications consulte la boîte durable **toutes les 10 secondes** : ce déclencheur technique n'est ni un rappel quotidien, ni un lancement de vidéo, ni une publication. Aucun horaire quotidien n'est activé.
 
-L'implémentation préparée utilise Python standard (SQLite compris), déjà nécessaire au projet, plutôt que d'ajouter un runtime TypeScript. Les composants Remotion et leurs fixtures ne changent pas.
+## Liaison Codex installée, limitée aux diagnostics
 
-- `automation/store.py` : transactions SQLite/WAL, événements Telegram dédupliqués, file à une seule génération, questions liées à une session et une révision, versions et accords conservés, boîte de notifications durable, résultats séparés par destination.
-- `automation/runner.py` : arguments séparés, prompt par stdin, sortie JSON validée selon `result.schema.json`, session relevée dans `thread.started`, reprise par UUID exact. Jamais `--last`, jamais de shell interpolant un message.
-- `automation/validate-episode.cjs` : cohérence épisode/leçon/empreinte et historique. Le lanceur recoupe chemins, manifeste, rapport, option et MP4, puis refait le contrôle technique avant de considérer une production terminée. Cette branche de production reste à tester sur un véritable rendu.
-- `needs_input` termine le tour Codex. Le stockage conserve la question avant sa notification et reprend uniquement sa session après réponse corrélée.
-- Un accord lie hash vidéo, légendes, destinations, horaire et révision. Une correction invalide l'accord courant et conserve la version approuvée dans la table `revisions`. Double clic concurrent : un seul accord accepté.
-- Après interruption, aucune génération n'est relancée automatiquement. Une publication engagée devient `publication_unknown` après examen opérateur ; les succès par destination sont conservés.
+Python standard et SQLite assurent la liaison privée ; les composants vidéo ne changent pas. L'API écoute uniquement sur la passerelle Docker observée `172.18.0.1:8787`. Aucun accès public nginx ne lui est associé. Deux secrets distincts séparent les rôles n8n et worker : requête sans authentification refusée (`401`), création de diagnostic avec le rôle worker refusée (`403`), vérifiées réellement.
 
-Test réel effectué avec le Codex déjà authentifié du compte interactif, en lecture seule : tâche `000000000001`, question structurée, puis reprise de la session `01a168f3-7278-75b2-aa8f-ccaf2902b955` avec un code de test, résultat `completed`. Aucun média produit. Journaux protégés : `/var/lib/englizy/probes`. Ce test ne prouve pas encore l'aller-retour Telegram ↔ question Codex.
+| Élément | Installation |
+| --- | --- |
+| Code exécuté | `/opt/englizy-automation/automation`, copie appartenant à root |
+| API et base | Compte `englizy-bridge`, service homonyme, `/var/lib/englizy-bridge/jobs.sqlite` |
+| Exécution Codex | Compte `englizy-worker`, service homonyme, états/journaux dans `/var/lib/englizy-worker/jobs` |
+| Authentification Codex | Cache privé `/var/lib/englizy-worker/.codex`, initialisé une fois depuis le compte existant ; jamais écrasé par l'installateur |
+| Configurations | `/etc/englizy/bridge.json` et `worker.json`, root/groupe du service, `0640` |
+| Transport interne | Secrets root `0600` dans `/var/lib/englizy/secrets`, transmis par `LoadCredential` |
+| Projet visible | Bind mount **en lecture seule** vers `/srv/englizy-repository`, uniquement dans les services |
 
-La production refuse de tourner en root. Il reste à définir un compte de service, ses droits limités aux données/sorties, son authentification Codex et l'API interne authentifiée accessible depuis le réseau Docker. Aucun workflow n'a accès à une commande root, au socket Docker ou à un lanceur de production actuellement actif. La liaison n8n → worker et le relais de questions restent à installer/tester ; le seul module SQLite ne constitue pas un service opérationnel.
+Les deux services sont actifs et activés au démarrage. Ils ont `ProtectSystem=strict`, `ProtectHome=yes`, aucune capacité root et des répertoires privés `0700`. L'isolation a été vérifiée dans l'espace de montage du worker : utilisateur non root, dépôt lisible mais en lecture seule, secret de transport n8n et base du bridge inaccessibles. Le cache Codex conserve ses propres renouvellements. Le modèle et l'effort existants ont été repris sans changement. Une connexion réussie et une invocation Codex réelle ont été constatées sous ce compte.
+
+- `automation/bridge.py` authentifie les routes, déduplique les événements et corrèle les réponses. Il n'appelle jamais Telegram directement.
+- `automation/worker.py` persiste la réservation et le résultat avant chaque échange. Un résultat peut être retransmis sans relancer Codex. Une interruption pendant l'exécution devient un échec explicite, sans relance aveugle.
+- `automation/runner.py` utilise des arguments séparés, le prompt par stdin, une sortie structurée et l'UUID réellement obtenu. La reprise vise cet UUID, jamais « la dernière session ». Les secrets de transport sont exclus de l'environnement Codex.
+- `automation/store.py` conserve tâches, questions, événements, reçus et versions dans SQLite/WAL. Les futurs accords de publication sont liés à la révision, au hash vidéo, aux légendes, destinations et horaire ; ces garde-fous sont testés en simulation, pas encore exposés comme parcours de publication.
+- L'API et le worker **refusent les tâches vidéo** dans cette tranche. Le lanceur de production est préparé mais n'a pas encore produit ni validé de MP4. Il faudra ouvrir seulement les chemins de données/sorties nécessaires, conserver les modèles en lecture seule et vérifier une première production.
+
+### Diagnostic réel et reprise
+
+La tâche `3c098f98f159` a été créée par le workflow HTTPS authentifié. Le worker a réellement lancé Codex, puis la question « Quel est le code de reprise de ce test ? » a été envoyée par le nœud Telegram. Les reçus d'attente et de question sont persistés. Après arrêt/redémarrage de n8n et des deux services, la tâche est toujours `needs_input`, avec la même question et la même session Codex. Le code `ENGLIZY-OK` est attendu dans Telegram pour achever le test de reprise de bout en bout. Aucun média n'a été généré. Les preuves privées se trouvent dans `/var/lib/englizy/management/codex-diagnostic-current.json`, `codex-restart-check.json` et `worker-isolation-check.json`.
+
+Commandes Telegram disponibles : `/diagnostic`, `/statut <tâche>`, `/question <tâche>` et `/repondre <tâche> <question> <réponse>`. Une réponse au message de question conserve sa corrélation ; du texte simple n'est accepté comme réponse que si une seule question est en attente. Plusieurs questions demandent une corrélation explicite. Les autres utilisateurs/conversations sont refusés. Aucun choix de format vidéo ni bouton de publication n'est encore actif.
+
+Les notifications sont réservées avant envoi et acquittées avec le reçu n8n/Telegram. Si n8n s'arrête entre ces étapes, une entrée peut rester `delivering` : examiner l'exécution et son reçu avant toute nouvelle tentative. Il n'y a pas de renvoi aveugle ni de promesse d'envoi « exactement une fois ». `/question <tâche>` permet à l'utilisateur de demander à nouveau une question persistante. Les tâches/réponses restent conservées même si une notification échoue.
+
+### Exploitation et mises à jour
+
+```sh
+sudo systemctl status englizy-bridge englizy-worker
+sudo journalctl -u englizy-bridge -u englizy-worker --since today
+sudo python3 scripts/automation-admin.py n8n-status
+```
+
+Les logs système ne contiennent ni en-têtes d'authentification ni corps Telegram ; les événements Codex restent dans le dossier privé du worker. Une authentification expirée doit être réparée localement pour ce compte, sans coller son cache dans la conversation. L'expiration de la clé de gestion n8n reste à surveiller indépendamment.
+
+Pour mettre à jour le code des services : examiner les tâches, suspendre les workflows de lancement/réception, attendre une frontière sûre (aucune tâche en cours ni en file), puis arrêter les deux services. L'installateur refuse les services encore actifs. Sauvegarder les états avant migration, puis :
+
+```sh
+sudo python3 scripts/install-automation-services.py --start
+```
+
+L'installation copie les modules et unités, conserve les secrets et le cache existants et remet les services en route. Vérifier santé, états et webhooks avant de réactiver l'entrée. Les workflows existants ne sont pas mis à jour automatiquement : examiner leur export et leurs modifications avant application. Pour un retour arrière, conserver le code et les unités précédents et vérifier la compatibilité du schéma SQLite ; ne jamais restaurer une ancienne base par-dessus les nouvelles réponses ou validations.
 
 ## Contrôles et suite
 
 `npm ci`, installation des requirements dans `.venv`, `npm run browser`, `npm run check`, `npm test`, `npm run verify` exécutés avec succès sur le VPS. Les contrôles existants des 14 options passent avec Node 24 ; le projet recommande Node 22 et la CI utilise toujours Node 22.
 
-24 scénarios d'automatisation **simulés** passent, intégrés à `npm test` : événements dédupliqués, rollback, génération unique, question conservée/reprise exacte, mauvais propriétaire/conversation/session, accord persistant vérifié depuis un nouveau processus Python, empreintes modifiées, double clic concurrent, ancienne version, annulation, interruption, publication inconnue et succès partiels, erreur explicite, option invalide, JSON hors contrat, fichiers absents/hors périmètre, données shell jamais passées en arguments de commande. Les tests de gestion Telegram vérifient aussi la lecture du candidat dans n8n, l'absence d'appel direct au bot et de copie de son jeton, ainsi que le refus d'un autre récepteur actif. Le helper Git refuse les autres hôtes et dépôts ; le lanceur CLI transmet son jeton seulement par environnement et interdit son affichage.
+34 scénarios d'automatisation **simulés** passent, intégrés à `npm test` : événements dédupliqués, rollback, génération unique, question conservée/reprise exacte, mauvais propriétaire/conversation/session, accord persistant vérifié depuis un nouveau processus Python, empreintes modifiées, double clic concurrent, ancienne version, annulation, interruption, publication inconnue et succès partiels, erreur explicite, option invalide, JSON hors contrat, fichiers absents/hors périmètre, données shell jamais passées en arguments de commande. Les tests de gestion Telegram vérifient aussi la lecture du candidat dans n8n, l'absence d'appel direct au bot et de copie de son jeton, ainsi que le refus d'un autre récepteur actif. Le helper Git refuse les autres hôtes et dépôts ; le lanceur CLI transmet son jeton seulement par environnement et interdit son affichage.
 
-Pas de changement visuel : aucun nouveau rendu ni écoute vidéo n'est présenté comme effectué. Il reste à tester réellement : utilisateur Telegram non autorisé, échanges après redémarrage des services, panne de voix/rendu, MP4 volumineux, session expirée et restauration d'une sauvegarde contenant les futurs identifiants/services.
+Les tests supplémentaires du bridge vérifient les rôles HTTP, l'identité des messages/callbacks, les retries sans doublon, la corrélation de session, les réponses ambiguës, les reçus et l'absence de relance après interruption. Pas de changement visuel : aucun nouveau rendu ni écoute vidéo n'est présenté comme effectué. Il reste à tester réellement : réponse Telegram reprenant la session après redémarrage, compte Telegram non autorisé, panne de voix/rendu, MP4 volumineux et session expirée.
 
 Buffer n'est pas connecté. Aucun adaptateur réseau de publication, URL média publique, destinataire social ni horaire n'est configuré. Continuer après production et prévisualisation vérifiées ; conserver les garde-fous du [contrat de publication](../publishing-contract.md). Un accord précis de publication réelle et un accord d'activation quotidienne restent nécessaires.
 

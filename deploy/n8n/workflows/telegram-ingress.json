@@ -1,0 +1,143 @@
+{
+  "name": "Englizy — Réception Telegram et tâches durables",
+  "nodes": [
+    {
+      "id": "durable-telegram",
+      "name": "Recevoir les messages et réponses",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "durable-identity",
+      "name": "Vérifier utilisateur et conversation privés",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "owner",
+              "leftValue": "={{ $json.message?.from?.id ?? $json.callback_query?.from?.id ?? -1 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "chat",
+              "leftValue": "={{ $json.message?.chat?.id ?? $json.callback_query?.message?.chat?.id ?? -1 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "private",
+              "leftValue": "={{ $json.message?.chat?.type ?? $json.callback_query?.message?.chat?.type ?? \"\" }}",
+              "rightValue": "private",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "durable-enqueue",
+      "name": "Persister la commande avant le travail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        630,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/telegram",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "telegram-ingress-note",
+      "name": "Fonctionnement et limites",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -290
+      ],
+      "parameters": {
+        "content": "## Réception unique du bot\nTrigger 1.2 : secret Telegram vérifié et updates en attente conservées. Les trois filtres suivants contrôlent aussi les callbacks ; les valeurs 0 refusent tous les comptes. Le bridge recontrôle l’identité et déduplique update_id dans SQLite. Aucune commande shell, aucune publication. Ne pas activer un autre Telegram Trigger pour ce bot.",
+        "width": 850,
+        "height": 230
+      }
+    }
+  ],
+  "connections": {
+    "Recevoir les messages et réponses": {
+      "main": [
+        [
+          {
+            "node": "Vérifier utilisateur et conversation privés",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier utilisateur et conversation privés": {
+      "main": [
+        [
+          {
+            "node": "Persister la commande avant le travail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataSuccessExecution": "all",
+    "saveDataErrorExecution": "all"
+  }
+}

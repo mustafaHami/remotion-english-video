@@ -60,13 +60,24 @@ class Store:
             job TEXT NOT NULL REFERENCES jobs(id), revision INTEGER NOT NULL,
             result TEXT, snapshot TEXT, approval TEXT,
             PRIMARY KEY(job, revision));
+          CREATE TABLE IF NOT EXISTS worker_claims (id TEXT PRIMARY KEY, job TEXT);
+          CREATE TABLE IF NOT EXISTS worker_receipts (lease TEXT PRIMARY KEY, digest TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS delivery_claims (id TEXT PRIMARY KEY, entries TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS admin_requests (id TEXT PRIMARY KEY, response TEXT NOT NULL);
         ''')
+        columns = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
+        for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT')]:
+            if name not in columns:
+                self.db.execute(f'ALTER TABLE jobs ADD COLUMN {name} {definition}')
 
     def close(self):
         self.db.close()
 
     @contextmanager
     def tx(self):
+        if self.db.in_transaction:
+            yield
+            return
         self.db.execute('BEGIN IMMEDIATE')
         try:
             yield
@@ -111,14 +122,16 @@ class Store:
             return response
 
     @atomic
-    def create(self, owner, chat, option, brief=''):
+    def create(self, owner, chat, option, brief='', kind='video'):
         if type(owner) is not int or type(chat) is not int or owner <= 0 or chat <= 0:
             raise ValueError('Compte et conversation privée numériques requis.')
         if type(option) is not int or not 1 <= option <= 14:
             raise ValueError('Choisir une option entière entre 1 et 14.')
+        if kind not in ['video', 'probe']:
+            raise ValueError('Type de tâche inconnu.')
         job_id = uuid.uuid4().hex[:12]
-        self.db.execute('''INSERT INTO jobs(id,revision,owner,chat,option,status,brief,updated)
-                           VALUES(?,1,?,?,?,'queued',?,?)''', (job_id, owner, chat, option, brief, now()))
+        self.db.execute('''INSERT INTO jobs(id,revision,owner,chat,option,status,brief,updated,kind)
+                           VALUES(?,1,?,?,?,'queued',?,?,?)''', (job_id, owner, chat, option, brief, now(), kind))
         self.db.execute('INSERT INTO revisions(job,revision) VALUES(?,1)', (job_id,))
         self.audit(job_id, 'created')
         return {'jobId': job_id, 'revision': 1, 'status': 'queued'}
@@ -130,7 +143,7 @@ class Store:
             row = self.db.execute("SELECT id FROM jobs WHERE status='queued' ORDER BY updated,id LIMIT 1").fetchone()
             if row is None:
                 return None
-            self.db.execute("UPDATE jobs SET status='generating',updated=? WHERE id=?", (now(), row[0]))
+            self.db.execute("UPDATE jobs SET status='generating',lease=?,updated=? WHERE id=?", (uuid.uuid4().hex, now(), row[0]))
             self.audit(row[0], 'claimed')
             return self.get(row[0])
 
@@ -159,10 +172,15 @@ class Store:
                     'revision': revision, 'questionId': question_id, 'text': result['question']})
             elif status == 'completed':
                 # Le résultat validé ne vaut ni prévisualisation ni accord humain.
-                status = 'awaiting_preview'
-                self.emit(f'ready:{job_id}:{revision}', job_id, {'kind': 'ready', 'jobId': job_id, 'revision': revision})
+                if job['kind'] == 'probe':
+                    self.emit(f'completed:{job_id}:{revision}', job_id, {'kind': 'text', 'text': result['summary'], 'jobId': job_id})
+                else:
+                    status = 'awaiting_preview'
+                    self.emit(f'ready:{job_id}:{revision}', job_id, {'kind': 'ready', 'jobId': job_id, 'revision': revision})
             elif status != 'failed':
                 raise ValueError('Statut Codex inconnu.')
+            if status == 'failed':
+                self.emit(f'failed:{job_id}:{revision}', job_id, {'kind': 'text', 'text': 'La tâche a échoué. Diagnostic conservé sur le VPS.', 'jobId': job_id})
             self.db.execute('UPDATE jobs SET status=?,session=?,question=?,result=?,updated=? WHERE id=?',
                 (status, actual_session, question_id, json.dumps(result), now(), job_id))
             self.db.execute('UPDATE revisions SET result=? WHERE job=? AND revision=?',
@@ -250,7 +268,48 @@ class Store:
         if status not in ['sent', 'delivery_unknown']:
             raise ValueError('Statut de notification invalide.')
         with self.tx():
-            changed = self.db.execute("UPDATE outbox SET status=?,receipt=? WHERE id=? AND status='pending'",
+            previous = self.db.execute('SELECT status,receipt FROM outbox WHERE id=?', (outbox_id,)).fetchone()
+            if previous and previous['status'] == status and json.loads(previous['receipt']) == receipt:
+                return
+            changed = self.db.execute("UPDATE outbox SET status=?,receipt=? WHERE id=? AND status IN ('pending','delivering')",
                                      (status, json.dumps(receipt), outbox_id)).rowcount
             if not changed:
                 raise ValueError('Notification déjà traitée.')
+
+    def claim_notifications(self, limit=10, claim_id=None):
+        with self.tx():
+            if claim_id:
+                previous = self.db.execute('SELECT entries FROM delivery_claims WHERE id=?', (claim_id,)).fetchone()
+                if previous:
+                    entries = []
+                    for identifier in json.loads(previous['entries']):
+                        row = self.db.execute("SELECT * FROM outbox WHERE id=? AND status='delivering'", (identifier,)).fetchone()
+                        if row:
+                            entries.append(dict(row) | {'payload': json.loads(row['payload'])})
+                    return entries
+            entries = self.pending()[:limit]
+            for entry in entries:
+                self.db.execute("UPDATE outbox SET status='delivering' WHERE id=?", (entry['id'],))
+            if claim_id and entries:
+                self.db.execute('INSERT INTO delivery_claims VALUES(?,?)', (claim_id, json.dumps([e['id'] for e in entries])))
+            return entries
+
+    def question_for_message(self, message_id):
+        for row in self.db.execute("SELECT payload,receipt FROM outbox WHERE status='sent'"):
+            receipt = json.loads(row['receipt'])
+            payload = json.loads(row['payload'])
+            if isinstance(receipt, dict) and receipt.get('messageId') == message_id and payload.get('kind') == 'question':
+                return payload['jobId'], payload['questionId']
+        raise ValueError('Répondre au message de question correspondant ou utiliser /repondre avec ses identifiants.')
+
+    def fail(self, job_id, lease):
+        with self.tx():
+            job = self.get(job_id)
+            if job['status'] == 'failed' and job['lease'] == lease:
+                return
+            if job['status'] != 'generating' or job['lease'] != lease:
+                raise ValueError('Traitement obsolète.')
+            self.db.execute("UPDATE jobs SET status='failed',updated=? WHERE id=?", (now(), job_id))
+            self.audit(job_id, 'worker-failed')
+            self.emit(f"failed:{job_id}:{job['revision']}", job_id, {'kind': 'text', 'jobId': job_id,
+                'text': 'Le diagnostic Codex a été interrompu ou a échoué. Aucun média produit ; les journaux sont conservés.'})

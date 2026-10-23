@@ -10,8 +10,8 @@ import subprocess
 import uuid
 import shutil
 
-ROOT = Path(__file__).resolve().parents[1]
-SCHEMA = ROOT / 'automation/result.schema.json'
+ROOT = Path(os.environ.get('ENGLIZY_REPO', Path(__file__).resolve().parents[1])).resolve()
+SCHEMA = Path(__file__).resolve().parent / 'result.schema.json'
 MISSION = '''Utilise explicitement le skill create-english-video dans
 .agents/skills/create-english-video/SKILL.md. Lis les règles du dépôt et la fiche
 de l'option validée dans les données. Consulte réellement planning et historique,

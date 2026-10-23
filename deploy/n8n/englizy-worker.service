@@ -1,0 +1,32 @@
+[Unit]
+Description=Englizy Codex diagnostic worker
+After=network-online.target englizy-bridge.service
+Wants=network-online.target englizy-bridge.service
+
+[Service]
+Type=simple
+User=englizy-worker
+Group=englizy-worker
+WorkingDirectory=/opt/englizy-automation
+ExecStart=/usr/bin/python3 -m automation.worker --config /etc/englizy/worker.json
+Environment=ENGLIZY_REPO=/srv/englizy-repository
+Environment=CODEX_HOME=/var/lib/englizy-worker/.codex
+LoadCredential=worker-token:/var/lib/englizy/secrets/worker-bridge-token
+StateDirectory=englizy-worker
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=3
+KillMode=control-group
+TimeoutStopSec=30
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+BindReadOnlyPaths=/root/projects/remotion-english-video:/srv/englizy-repository
+CapabilityBoundingSet=
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target
