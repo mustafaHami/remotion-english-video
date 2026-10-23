@@ -40,6 +40,8 @@ Le script inspecte les chemins du conteneur au lieu de supposer un volume neuf. 
 
 Un démarrage réel de cette sauvegarde a aussi réussi avec `sudo python3 scripts/test-n8n-restore.py /var/backups/englizy/20261023T132207439537Z` : même image déjà présente, copie temporaire des données, réseau Docker `none`, aucun port publié, aucun volume de production monté. Le propriétaire restauré est reconnu et `/healthz/readiness` répond. Les workflows de la copie sont désactivés avant démarrage. Le conteneur de test et la copie temporaire ont ensuite été retirés ; le rapport `restore-boot-check.json` reste dans la sauvegarde. Cette sauvegarde initiale ne contenant pas encore d'identifiants, ce test ne prouve pas leur déchiffrement futur.
 
+Une seconde sauvegarde cohérente a réussi après réception du code Telegram : `/var/backups/englizy/20261023T162623329351Z`, avec un utilisateur, deux workflows et un identifiant. Son extraction, son intégrité SQLite et sa clé ont été contrôlées. Le démarrage isolé de cette seconde sauvegarde n'est pas encore testé.
+
 Pour revenir aux URL privées, sauvegarder d'abord l'état courant, comparer le Compose sauvegardé au Compose actuel, rétablir uniquement les variables d'URL concernées, puis `docker compose -f /root/services/n8n/compose.yaml up -d --no-deps --pull never n8n`. Désactiver le site nginx si nécessaire. Ne pas restaurer la vieille base sur les données actuelles : cela perdrait les identifiants et workflows créés depuis. Ne jamais utiliser `docker compose down -v`.
 
 Une restauration réelle du volume exige un arrêt, une sauvegarde de l'état courant et une destination isolée. Aucun script de restauration destructive n'est fourni.
@@ -63,9 +65,9 @@ Cette version enregistre et retire ses déclencheurs de manière asynchrone. Le 
 
 Choix utilisateur : le jeton est saisi **uniquement dans les identifiants Telegram API de n8n**. Aucun jeton Telegram n'est demandé par le script de secrets, copié dans le stockage local de gestion, déchiffré par l'agent ou placé dans les exports. Le programme VPS ne gère aucun webhook Telegram et ne lance aucun poller `getUpdates` ; il ne fait pas de `sendMessage` direct. Les nœuds n8n font la réception et l'envoi. La gestion de l'association lit les résultats de leurs exécutions via l'API n8n.
 
-À l'inspection initiale : aucun identifiant n8n, aucun workflow Telegram. L'utilisateur a depuis ajouté l'identifiant **Telegram account**, de type `telegramApi`, dont la présence est vérifiée par l'API n8n. Aucun workflow Telegram n'est encore actif. Cela ne prouve pas qu'un même bot n'est pas utilisé ailleurs. Demander son nom public et la confirmation de son usage exclusif avant d'activer son webhook ; ne pas écraser le récepteur d'un autre outil. Le contrôle local refuse également tout autre workflow Telegram actif.
+À l'inspection initiale : aucun identifiant n8n, aucun workflow Telegram. L'utilisateur a depuis ajouté l'identifiant **Telegram account**, de type `telegramApi`, dont la présence et le test de connexion sont vérifiés par l'API n8n. Il a fourni **@muss_vps_n8n_bot** et confirmé que ce bot est réservé à cette instance. Le contrôle local refuse également tout autre workflow Telegram actif.
 
-Parcours préparé, pas encore validé avec le compte utilisateur :
+Parcours d'association et de test :
 
 1. L'utilisateur crée/teste « Englizy — Telegram » dans n8n. L'agent ne lit que ses métadonnées via l'API.
 2. L'opérateur lance l'association uniquement après confirmation que ce bot n'a aucun autre récepteur actif :
@@ -90,9 +92,13 @@ Parcours préparé, pas encore validé avec le compte utilisateur :
 
 5. L'utilisateur envoie un message. Le workflow [telegram-connection-test.json](workflows/telegram-connection-test.json) utilise les filtres numériques utilisateur **et** conversation du Trigger 1.5, puis un nœud Telegram répond uniquement à la conversation confirmée. Les callbacks sont également filtrés par cette version. Vérifier l'exécution et la réception, puis désactiver le test avec `telegram-disable-test`. Le script attend qu'une requête sans secret soit refusée par le webhook (`403`) à l'activation, puis que le chemin redevienne inconnu (`404`) après désactivation, avant tout changement de récepteur.
 
-Les workflows Telegram ne sont pas encore importés et leurs IDs ne sont donc pas inventés. Leurs références réelles seront enregistrées sous `/var/lib/englizy/management`, hors Git. Les exports ont des filtres à `0` qui refusent tous les comptes tant que l'installateur ne les a pas renseignés.
+État réellement vérifié : le workflow d'association **MkrDsOiJttrknu0M** a reçu le code privé, exécution n8n **4**, puis a été désactivé. Le webhook a refusé une requête sans secret (`403`) et est redevenu inconnu (`404`) après désactivation. L'utilisateur a explicitement confirmé son compte. Les IDs numériques et la preuve d'association restent dans `/var/lib/englizy/management`, hors Git.
+
+Le workflow de test privé **riwxDWD1DzItHGAx** est installé, lié à l'identifiant n8n existant et activé avec les filtres sur l'utilisateur et la conversation confirmés. Son webhook refuse les requêtes sans secret. La réception d'un message `test` et l'envoi de sa réponse par le nœud Telegram restent à constater. Les exports génériques ont des filtres à `0` qui refusent tous les comptes tant que l'installateur ne les a pas renseignés.
 
 **Limite relevée dans le code installé :** le Telegram Trigger 1.5 active `drop_pending_updates` lors de son enregistrement. Ces workflows conviennent à l'association et au test ponctuel, mais ne constituent pas encore le récepteur durable de production. Avant cette étape, choisir et tester un webhook n8n préservant les updates en attente, le secret Telegram et le filtrage des callbacks. Un seul récepteur reste actif pour un bot ; aucun deuxième poller VPS n'est prévu.
+
+Une piste native est vérifiée **en simulation sur le nœud installé** : `docker exec -i n8n-n8n-1 node < scripts/test-telegram-trigger.cjs`. Le Telegram Trigger **1.2**, déjà livré dans l'image actuelle, enregistre `drop_pending_updates=false`, transmet les callbacks authentifiés au workflow et refuse un mauvais secret (`403`). Le test utilise des identifiants fictifs et remplace les appels réseau ; il n'envoie aucune requête à Telegram. Cette configuration n'est pas encore déployée. Ne pas utiliser ses anciens filtres natifs pour les callbacks : ajouter ensuite un nœud IF vérifiant explicitement les IDs utilisateur et conversation, ainsi que le type de conversation privée, puis refaire les tests réels et le redémarrage avant production.
 
 ## Lanceur Codex et état durable : préparés, pas installés comme services
 
