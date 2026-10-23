@@ -64,6 +64,12 @@ class Store:
           CREATE TABLE IF NOT EXISTS worker_receipts (lease TEXT PRIMARY KEY, digest TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS delivery_claims (id TEXT PRIMARY KEY, entries TEXT NOT NULL);
           CREATE TABLE IF NOT EXISTS admin_requests (id TEXT PRIMARY KEY, response TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS option_choices (
+            id TEXT PRIMARY KEY, owner INTEGER NOT NULL, chat INTEGER NOT NULL,
+            job TEXT REFERENCES jobs(id), created TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS preview_media (
+            job TEXT NOT NULL REFERENCES jobs(id), revision INTEGER NOT NULL,
+            media TEXT NOT NULL, PRIMARY KEY(job,revision));
         ''')
         columns = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
         for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT')]:
@@ -277,6 +283,12 @@ class Store:
                                      (status, json.dumps(receipt), outbox_id)).rowcount
             if not changed:
                 raise ValueError('Notification déjà traitée.')
+            item = self.db.execute('SELECT job,payload FROM outbox WHERE id=?', (outbox_id,)).fetchone()
+            payload = json.loads(item['payload'])
+            if status == 'sent' and payload.get('kind') == 'ready':
+                self.db.execute("UPDATE jobs SET status='awaiting_review',updated=? WHERE id=? AND revision=? AND status='awaiting_preview'",
+                                (now(), item['job'], payload['revision']))
+                self.audit(item['job'], 'preview-delivered', receipt)
 
     def claim_notifications(self, limit=10, claim_id=None):
         with self.tx():
@@ -314,4 +326,4 @@ class Store:
             self.db.execute("UPDATE jobs SET status='failed',updated=? WHERE id=?", (now(), job_id))
             self.audit(job_id, 'worker-failed')
             self.emit(f"failed:{job_id}:{job['revision']}", job_id, {'kind': 'text', 'jobId': job_id,
-                'text': 'Le diagnostic Codex a été interrompu ou a échoué. Aucun média produit ; les journaux sont conservés.'})
+                'text': 'La tâche Codex a été interrompue ou a échoué. Les journaux et éventuels fichiers restent conservés ; aucune publication.'})

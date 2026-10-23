@@ -21,3 +21,5 @@ id_rsa*
 id_ed25519*
 # Cached historical audio stays local; production WAVs are versioned.
 public/audio/options*/
+# New intermediate downloads stay local; preserve already versioned files.
+public/audio/production/*.mp3

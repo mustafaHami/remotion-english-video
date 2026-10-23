@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Installe la liaison privée en mode diagnostic, sans changer Docker ni ses volumes."""
+"""Installe la liaison privée et les accès vidéo ciblés, sans changer Docker ni ses volumes."""
 import argparse
 import json
 import os
@@ -13,6 +13,9 @@ import tomllib
 ROOT = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--start', action='store_true')
+mode = parser.add_mutually_exclusive_group()
+mode.add_argument('--enable-video', action='store_true')
+mode.add_argument('--diagnostic-only', action='store_true')
 args = parser.parse_args()
 if os.geteuid() != 0:
     parser.error('Exécuter avec sudo.')
@@ -30,6 +33,10 @@ networks = list(container['NetworkSettings']['Networks'].values())
 if len(networks) != 1 or not networks[0].get('Gateway'):
     raise SystemExit('Réseau Docker ambigu ; relever la passerelle avant installation.')
 gateway = networks[0]['Gateway']
+previous_config = Path('/etc/englizy/worker.json')
+video_enabled = args.enable_video or (previous_config.exists() and json.loads(previous_config.read_text()).get('videoEnabled', False))
+if args.diagnostic_only:
+    video_enabled = False
 for name in ['englizy-bridge', 'englizy-worker']:
     home = '/var/lib/' + name
     try:
@@ -44,6 +51,32 @@ for name in ['englizy-bridge', 'englizy-worker']:
     path.mkdir(mode=0o700, exist_ok=True)
     path.chmod(0o700)
     os.chown(path, user.pw_uid, user.pw_gid)
+worker_user = pwd.getpwnam('englizy-worker')
+bridge_user = pwd.getpwnam('englizy-bridge')
+media_root = Path('/var/lib/englizy-media')
+media_root.mkdir(mode=0o2750, exist_ok=True)
+os.chown(media_root, worker_user.pw_uid, bridge_user.pw_gid)
+media_root.chmod(0o2750)
+if video_enabled:
+    # Codex protège ce répertoire dans son sandbox. Il doit déjà exister sur
+    # le montage parent en lecture seule, même sans configuration locale.
+    for protected in ['.codex', '.aws']:
+        codex_project = ROOT / protected
+        if not codex_project.exists():
+            codex_project.mkdir(mode=0o755)
+            codex_project.chmod(0o755)
+    output_parent = ROOT / 'output'
+    output_parent.mkdir(mode=0o755, exist_ok=True)
+    output_parent.chmod(0o755)
+    for relative in ['content/episodes', 'public/audio/production', 'output/options', 'node_modules/.cache']:
+        path = ROOT / relative
+        path.mkdir(mode=0o755, parents=True, exist_ok=True)
+        os.chown(path, 0, worker_user.pw_gid)
+        path.chmod(0o1775)  # Nouveaux fichiers autorisés ; les anciens fichiers root restent protégés.
+    provenance = ROOT / 'public/audio/production/provenance.json'
+    if provenance.exists():
+        os.chown(provenance, 0, worker_user.pw_gid)
+        provenance.chmod(0o664)
 destination = Path('/opt/englizy-automation')
 destination.mkdir(mode=0o755, parents=True, exist_ok=True)
 shutil.copytree(ROOT / 'automation', destination / 'automation', dirs_exist_ok=True,
@@ -58,8 +91,10 @@ repository_alias.mkdir(mode=0o755, exist_ok=True)
 repository_alias.chmod(0o755)
 configs = {
     'bridge': {'owner': identity['userId'], 'chat': identity['chatId'], 'bind': gateway,
-               'port': 8787, 'database': '/var/lib/englizy-bridge/jobs.sqlite'},
-    'worker': {'bridge': f'http://{gateway}:8787', 'stateDir': '/var/lib/englizy-worker/jobs'},
+               'port': 8787, 'database': '/var/lib/englizy-bridge/jobs.sqlite',
+               'videoEnabled': video_enabled, 'mediaRoot': str(media_root)},
+    'worker': {'bridge': f'http://{gateway}:8787', 'stateDir': '/var/lib/englizy-worker/jobs',
+               'videoEnabled': video_enabled, 'mediaRoot': str(media_root)},
 }
 for kind, value in configs.items():
     user = pwd.getpwnam('englizy-' + kind)
@@ -99,11 +134,19 @@ for service in ['englizy-bridge', 'englizy-worker']:
     target = Path('/etc/systemd/system') / (service + '.service')
     shutil.copyfile(ROOT / 'deploy/n8n' / (service + '.service'), target)
     target.chmod(0o644)
+dropin = Path('/etc/systemd/system/englizy-worker.service.d/20-video.conf')
+if video_enabled:
+    dropin.parent.mkdir(mode=0o755, exist_ok=True)
+    shutil.copyfile(ROOT / 'deploy/n8n/englizy-worker-video.conf', dropin)
+    dropin.chmod(0o644)
+elif dropin.exists():
+    dropin.unlink()  # Notre seule dérogation vidéo ; aucun autre drop-in n'est touché.
 subprocess.run(['systemd-analyze', 'verify', '/etc/systemd/system/englizy-bridge.service',
                 '/etc/systemd/system/englizy-worker.service'], check=True)
 subprocess.run(['systemctl', 'daemon-reload'], check=True)
 if args.start:
     subprocess.run(['systemctl', 'enable', '--now', 'englizy-bridge.service', 'englizy-worker.service'], check=True)
 print(json.dumps({'installed': True, 'started': args.start, 'bridge': f'http://{gateway}:8787',
-                  'mode': 'probe-only', 'repositoryAccess': 'read-only bind mount',
+                  'mode': 'video-preview' if video_enabled else 'probe-only',
+                  'repositoryAccess': 'read-only with targeted data/output mounts' if video_enabled else 'read-only bind mount',
                   'codexAuth': 'private service cache; no secret in Git or logs'}))

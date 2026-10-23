@@ -1,5 +1,5 @@
 [Unit]
-Description=Englizy Codex diagnostic worker
+Description=Englizy Codex job worker
 After=network-online.target englizy-bridge.service
 Wants=network-online.target englizy-bridge.service
 

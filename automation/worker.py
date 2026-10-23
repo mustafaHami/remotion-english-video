@@ -9,6 +9,8 @@ import urllib.request
 import uuid
 
 from .runner import run
+from .runner import ROOT
+from . import media
 
 
 def save(path, value):
@@ -53,14 +55,27 @@ def cycle(config, token):
         state['phase'] = 'running'
         save(state_file, state)
         try:
-            result = run(state['job'], directory / 'runs', probe=True, answer=state.get('answer'), timeout=900)
-            state.update(phase='submitting', result=result)
-        except Exception:
+            is_probe = state['job']['kind'] == 'probe'
+            if not is_probe and not config.get('videoEnabled', False):
+                raise ValueError('Production non activée sur ce worker.')
+            result = run(state['job'], directory / 'runs', probe=is_probe, answer=state.get('answer'), timeout=900 if is_probe else 7200)
+            state.update(phase='preparing' if not is_probe and result['status'] == 'completed' else 'submitting', result=result)
+        except Exception as error:
+            save(directory / 'last-failure.json', {'jobId': state['job']['id'], 'type': type(error).__name__, 'error': str(error)})
+            state['phase'] = 'failed'
+        save(state_file, state)
+    if state['phase'] == 'preparing':
+        # Résultat durable avant la copie : un redémarrage ne rappelle pas Codex.
+        try:
+            state['preview'] = media.prepare(state['result'], ROOT, config['mediaRoot'])
+            state['phase'] = 'submitting'
+        except Exception as error:
+            save(directory / 'last-failure.json', {'jobId': state['job']['id'], 'type': type(error).__name__, 'error': str(error)})
             state['phase'] = 'failed'
         save(state_file, state)
     job = state['job']
     if state['phase'] == 'submitting':
-        request(config['bridge'], token, '/worker/result', {'lease': job['lease'], 'result': state['result']})
+        request(config['bridge'], token, '/worker/result', {'lease': job['lease'], 'result': state['result'], 'preview': state.get('preview')})
     elif state['phase'] == 'failed':
         request(config['bridge'], token, '/worker/failure', {'jobId': job['id'], 'lease': job['lease']})
     state_file.unlink()
@@ -74,7 +89,7 @@ def main():
     os.umask(0o077)
     config = json.loads(args.config.read_text())
     token = (Path(os.environ['CREDENTIALS_DIRECTORY']) / 'worker-token').read_text().strip()
-    print('Worker Codex prêt ; diagnostics en lecture seule uniquement.', flush=True)
+    print('Worker Codex prêt ; publication désactivée.', flush=True)
     while True:
         try:
             worked = cycle(config, token)

@@ -49,8 +49,16 @@ guard = node('durable-identity', 'Vérifier utilisateur et conversation privés'
              {'conditions': {'options': {'caseSensitive': True, 'typeValidation': 'strict', 'version': 2},
                              'conditions': conditions, 'combinator': 'and'}, 'options': {}})
 enqueue = http('durable-enqueue', 'Persister la commande avant le travail', '/telegram', '={{ JSON.stringify($json) }}', 630)
-write('telegram-ingress', 'Englizy — Réception Telegram et tâches durables', [trigger, guard, enqueue], {
-    trigger['name']: {'main': [[link(guard['name'])]]}, guard['name']: {'main': [[link(enqueue['name'])], []]}},
+callback = node('callback-present', 'Un bouton attend un accusé', 'if', 2.2, 930,
+    {'conditions': {'options': {'typeValidation': 'strict', 'version': 2}, 'conditions': [
+        {'id': 'callback', 'leftValue': '={{ Boolean($json.callbackId) }}', 'rightValue': True,
+         'operator': {'type': 'boolean', 'operation': 'true', 'singleValue': True}}], 'combinator': 'and'}, 'options': {}})
+ack = node('callback-ack', 'Confirmer le clic Telegram', 'telegram', 1.2, 1220,
+    {'resource': 'callback', 'operation': 'answerQuery', 'queryId': '={{ $json.callbackId }}',
+     'additionalFields': {'text': '={{ $json.callbackText }}'}})
+write('telegram-ingress', 'Englizy — Réception Telegram et tâches durables', [trigger, guard, enqueue, callback, ack], {
+    trigger['name']: {'main': [[link(guard['name'])]]}, guard['name']: {'main': [[link(enqueue['name'])], []]},
+    enqueue['name']: {'main': [[link(callback['name'])]]}, callback['name']: {'main': [[link(ack['name'])], []]}},
     '## Réception unique du bot\nTrigger 1.2 : secret Telegram vérifié et updates en attente conservées. '
     'Les trois filtres suivants contrôlent aussi les callbacks ; les valeurs 0 refusent tous les comptes. '
     'Le bridge recontrôle l’identité et déduplique update_id dans SQLite. '
@@ -65,13 +73,36 @@ split = node('notification-split', 'Préparer chaque notification', 'splitOut', 
               'options': {'destinationFieldName': 'notification'}})
 send = node('notification-send', 'Envoyer la question ou le résultat', 'telegram', 1.2, 900,
             {'resource': 'message', 'operation': 'sendMessage', 'chatId': '0',
-             'text': '={{ $json.notification.text }}', 'additionalFields': {'appendAttribution': False}})
+             'text': '={{ $json.notification.text }}', 'additionalFields': {'appendAttribution': False, 'parse_mode': 'HTML'},
+             'replyMarkup': '={{ $json.notification.kind === "menu" ? "inlineKeyboard" : "none" }}',
+             'inlineKeyboard': '={{ $json.notification.keyboard }}'})
+is_video = node('notification-video', 'La notification contient une vidéo', 'if', 2.2, 850,
+    {'conditions': {'options': {'typeValidation': 'strict', 'version': 2}, 'conditions': [
+        {'id': 'video', 'leftValue': '={{ $json.notification.kind }}', 'rightValue': 'video',
+         'operator': {'type': 'string', 'operation': 'equals'}}], 'combinator': 'and'}, 'options': {}})
+download = node('preview-download', 'Récupérer le MP4 contrôlé sur le VPS', 'httpRequest', 4.2, 1150,
+    {'method': 'GET', 'url': '=http://REQUIRES-BRIDGE-CONFIGURATION{{ $json.notification.mediaPath }}',
+     'authentication': 'genericCredentialType', 'genericAuthType': 'httpHeaderAuth',
+     'options': {'timeout': 120000, 'response': {'response': {'responseFormat': 'file', 'outputPropertyName': 'video'}}}},
+    retryOnFail=True, maxTries=3, waitBetweenTries=2000)
+video_send = node('preview-send', 'Envoyer la prévisualisation MP4', 'telegram', 1.2, 1450,
+    {'resource': 'message', 'operation': 'sendVideo', 'chatId': '0', 'binaryData': True,
+     'binaryPropertyName': 'video', 'replyMarkup': 'none',
+     'additionalFields': {'caption': '={{ $("Préparer chaque notification").item.json.notification.text }}',
+                          'parse_mode': 'HTML',
+                          'width': '={{ $("Préparer chaque notification").item.json.notification.width }}',
+                          'height': '={{ $("Préparer chaque notification").item.json.notification.height }}',
+                          'duration': '={{ $("Préparer chaque notification").item.json.notification.duration }}'}})
+send['position'] = [1150, 230]
 receipt = http('notification-receipt', 'Conserver le reçu Telegram', '/outbox/receipt',
     '={{ JSON.stringify({id:$("Préparer chaque notification").item.json.notification.id, '
     'messageId:$json.message_id ?? $json.result?.message_id, chatId:$json.chat?.id ?? $json.result?.chat?.id}) }}', 1200)
-write('telegram-notifications', 'Englizy — Questions et résultats vers Telegram', [timer, reserve, split, send, receipt], {
+receipt['position'] = [1780, 100]
+write('telegram-notifications', 'Englizy — Questions et résultats vers Telegram', [timer, reserve, split, is_video, download, video_send, send, receipt], {
     timer['name']: {'main': [[link(reserve['name'])]]}, reserve['name']: {'main': [[link(split['name'])]]},
-    split['name']: {'main': [[link(send['name'])]]}, send['name']: {'main': [[link(receipt['name'])]]}},
+    split['name']: {'main': [[link(is_video['name'])]]}, is_video['name']: {'main': [[link(download['name'])], [link(send['name'])]]},
+    download['name']: {'main': [[link(video_send['name'])]]}, video_send['name']: {'main': [[link(receipt['name'])]]},
+    send['name']: {'main': [[link(receipt['name'])]]}},
     '## Transport technique uniquement\nScrutation toutes les 10 secondes, aucun rappel quotidien. '
     'Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. '
     'Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. '

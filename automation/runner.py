@@ -24,6 +24,12 @@ completed avec les chemins et contrôles réels, ou failed avec une erreur explo
 Ne prétends pas avoir effectué une écoute subjective sans moyen réel de l'effectuer.
 Le lanceur relève lui-même sessionId et questionId : laisse-les à null.
 En cas de révision, conserve le précédent MP4 et crée une nouvelle réalisation datée.
+Utilise les chemins du dépôt courant /srv/englizy-repository. Seuls content/episodes,
+public/audio/production, output/options et le cache Remotion sont accessibles en écriture.
+N'exécute pas npm ci et n'installe aucune dépendance : elles sont déjà installées.
+Utilise explicitement PYTHON pour les scripts Python. RENDER_CONCURRENCY=2 est fixé.
+Ne modifie jamais les publications ni le planning. Inspecte les captures avec view_image
+avant de déclarer visualImages=true. L'écoute subjective peut rester non effectuée.
 '''
 
 
@@ -142,6 +148,7 @@ Les chemins de livrables et sessionId/questionId restent null ; tous les checks 
            ['PATH', 'HOME', 'CODEX_HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'SSL_CERT_FILE', 'SSL_CERT_DIR']}
     env['PYTHON'] = str(ROOT / '.venv/bin/python')
     env['PUBLISH_ENABLED'] = 'false'
+    env['RENDER_CONCURRENCY'] = '2'
     with (directory / 'events.jsonl').open('w') as events, (directory / 'stderr.log').open('w') as errors:
         process = subprocess.Popen(arguments(job, directory, probe), cwd=ROOT, env=env,
             stdin=subprocess.PIPE, stdout=events, stderr=errors, text=True, start_new_session=True)

@@ -94,6 +94,56 @@
       "waitBetweenTries": 2000
     },
     {
+      "id": "callback-present",
+      "name": "Un bouton attend un accusé",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        930,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "callback",
+              "leftValue": "={{ Boolean($json.callbackId) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "callback-ack",
+      "name": "Confirmer le clic Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1220,
+        0
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.callbackId }}",
+        "additionalFields": {
+          "text": "={{ $json.callbackText }}"
+        }
+      }
+    },
+    {
       "id": "telegram-ingress-note",
       "name": "Fonctionnement et limites",
       "type": "n8n-nodes-base.stickyNote",
@@ -126,6 +176,29 @@
         [
           {
             "node": "Persister la commande avant le travail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Persister la commande avant le travail": {
+      "main": [
+        [
+          {
+            "node": "Un bouton attend un accusé",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Un bouton attend un accusé": {
+      "main": [
+        [
+          {
+            "node": "Confirmer le clic Telegram",
             "type": "main",
             "index": 0
           }

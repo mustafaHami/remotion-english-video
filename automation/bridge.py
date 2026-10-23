@@ -6,8 +6,11 @@ import os
 from pathlib import Path
 import re
 import secrets
+import uuid
+import html
 
 from .store import Store, digest, now
+from . import media
 
 
 class Application:
@@ -25,6 +28,43 @@ class Application:
             'text': f"Diagnostic {job['jobId']} en attente. Aucune vidéo ni publication ne sera créée."})
         return job
 
+    def options(self, store):
+        if not self.config.get('videoEnabled', False):
+            raise ValueError('La création vidéo n’est pas encore activée.')
+        root = Path(os.environ.get('ENGLIZY_REPO', Path(__file__).resolve().parents[1]))
+        catalog = json.loads((root / 'src/options/catalog.json').read_text())
+        if {item['option'] for item in catalog} != set(range(1, 15)):
+            raise ValueError('Catalogue des 14 options incomplet.')
+        choice = store.db.execute('SELECT id FROM option_choices WHERE owner=? AND chat=? AND job IS NULL ORDER BY created LIMIT 1',
+                                  (self.config['owner'], self.config['chat'])).fetchone()
+        identifier = choice['id'] if choice else uuid.uuid4().hex[:12]
+        if not choice:
+            store.db.execute('INSERT INTO option_choices(id,owner,chat,created) VALUES(?,?,?,?)',
+                             (identifier, self.config['owner'], self.config['chat'], now()))
+        keyboard = {'rows': [{'row': {'buttons': [
+            {'text': str(item['option']), 'additionalFields': {'callback_data': f"video:{identifier}:{item['option']}"}}
+            for item in catalog[i:i + 2]]}} for i in range(0, 14, 2)]}
+        text = ('Choisissez votre format :\n\n' + '\n'.join(f"{i['option']}. {i['name']}" for i in catalog)
+                + '\n\nTouchez un numéro ci-dessous. Le contenu sera choisi automatiquement, puis le MP4 vous sera envoyé ici. Aucune publication.'
+                + f'\nSi nécessaire : /choisir {identifier} NUMÉRO')
+        return {'kind': 'menu', 'text': text, 'keyboard': keyboard}
+
+    def choose(self, store, identifier, option):
+        if not self.config.get('videoEnabled', False):
+            raise ValueError('La création vidéo n’est pas encore activée.')
+        choice = store.db.execute('SELECT * FROM option_choices WHERE id=? AND owner=? AND chat=?',
+                                  (identifier, self.config['owner'], self.config['chat'])).fetchone()
+        if not choice:
+            raise ValueError('Choix inconnu ; envoyez /video pour ouvrir le menu.')
+        if choice['job']:
+            job = store.get(choice['job'])
+            return {'jobId': job['id'], 'status': job['status'], 'alreadySelected': True}
+        job = store.create(self.config['owner'], self.config['chat'], option, 'Création directe depuis Telegram. Prévisualisation uniquement.', kind='video')
+        store.db.execute('UPDATE option_choices SET job=? WHERE id=?', (job['jobId'], identifier))
+        store.emit('queued:' + job['jobId'], job['jobId'], {'kind': 'text', 'jobId': job['jobId'],
+            'text': f"Option {option} sélectionnée. Tâche {job['jobId']} en file : choix d’un contenu inédit, voix, rendu et vérifications. Vous recevrez le MP4 ici. Aucune publication."})
+        return job
+
     def ingest(self, store, update):
         message = update.get('message') or update.get('callback_query', {}).get('message', {})
         sender = update.get('message', {}).get('from') or update.get('callback_query', {}).get('from', {})
@@ -35,8 +75,6 @@ class Application:
             raise PermissionError('Compte non autorisé.')
 
         def operation():
-            if 'callback_query' in update:
-                return {'accepted': True, 'action': 'unsupported_callback'}
             text = message.get('text', '')
             if not isinstance(text, str) or len(text) > 8000:
                 raise ValueError('Message invalide.')
@@ -47,6 +85,23 @@ class Application:
                 return {'accepted': True, 'jobId': job_id}
 
             try:
+                if 'callback_query' in update:
+                    match = re.fullmatch(r'video:([a-f0-9]{12}):(\d{1,2})', update['callback_query'].get('data', ''))
+                    if match:
+                        return self.choose(store, match[1], int(match[2]))
+                    return {'accepted': True, 'action': 'unsupported_callback'}
+                if text.strip() in ['/video', '/options']:
+                    return reply('', payload=self.options(store))
+                match = re.fullmatch(r'/choisir\s+([a-f0-9]{12})\s+(\d{1,2})', text.strip())
+                if match:
+                    return self.choose(store, match[1], int(match[2]))
+                # Un numéro saisi devant un menu ouvert est un choix, pas une réponse
+                # à un ancien diagnostic. Une réponse citant une question reste corrélée.
+                if re.fullmatch(r'\d{1,2}', text.strip()) and not message.get('reply_to_message'):
+                    choice = store.db.execute('SELECT id FROM option_choices WHERE owner=? AND chat=? AND job IS NULL ORDER BY created LIMIT 1',
+                                              (sender['id'], chat['id'])).fetchone()
+                    if choice:
+                        return self.choose(store, choice['id'], int(text.strip()))
                 if text.strip() == '/diagnostic':
                     return self.diagnostic(store)
                 match = re.fullmatch(r'/statut\s+([a-f0-9]{12})', text.strip())
@@ -81,11 +136,14 @@ class Application:
                     result = store.answer(job_id, question_id, sender['id'], chat['id'], answer)
                     reply(f'Réponse enregistrée pour {job_id}. Reprise de sa session Codex.', job_id)
                     return result
-                return reply('Liaison Codex : /diagnostic, /statut <tâche>, /question <tâche>. La création vidéo et la publication ne sont pas encore activées.')
+                return reply('Commandes : /video pour choisir un format, /diagnostic, /statut <tâche>, /question <tâche>. Aucune publication automatique.')
             except ValueError as error:
                 return reply(str(error))
 
-        return store.event(update.get('update_id'), operation)
+        result = store.event(update.get('update_id'), operation)
+        if 'callback_query' in update:
+            result = result | {'callbackId': update['callback_query']['id'], 'callbackText': 'Choix reçu.'}
+        return result
 
     def route(self, role, path, body):
         store = Store(self.config['database'])
@@ -119,7 +177,25 @@ class Application:
                             text = (f"Tâche {payload['jobId']} — question {payload['questionId']}\n\n{text[:2500]}\n\n"
                                     'Répondez à ce message. Si une seule question est en attente, vous pouvez aussi saisir simplement votre réponse.\n'
                                     f"Commande explicite : /repondre {payload['jobId']} {payload['questionId']} votre réponse")
-                        notifications.append({'id': entry['id'], 'text': text[:4000], 'chatId': self.config['chat']})
+                        note = {'id': entry['id'], 'kind': payload['kind'], 'text': html.escape(text[:3500]),
+                                'chatId': self.config['chat'], 'keyboard': payload.get('keyboard', {})}
+                        if payload['kind'] == 'ready':
+                            job = store.get(payload['jobId'])
+                            row = store.db.execute('SELECT media FROM preview_media WHERE job=? AND revision=?',
+                                                   (job['id'], payload['revision'])).fetchone()
+                            if not row:
+                                raise ValueError('Prévisualisation contrôlée manquante.')
+                            item = json.loads(row['media'])
+                            note.update(kind='video', mediaPath=f"/media/{job['id']}/{payload['revision']}",
+                                        width=item['width'], height=item['height'], duration=int(item['duration']))
+                            caption = (f"Prévisualisation — option {job['option']} — tâche {job['id']}\n"
+                                       + job['result']['summary'][:400]
+                                       + '\nContrôle technique et inspection d’images effectués.'
+                                       + ('\nÉcoute subjective non effectuée.' if not job['result']['checks']['subjectiveListening'] else '')
+                                       + ('\nCopie compressée pour Telegram ; original conservé.' if item['compressed'] else '\nMP4 original, sans compression supplémentaire par le VPS.')
+                                       + '\nÀ regarder avant la suite. Aucune publication.')
+                            note['text'] = html.escape(caption)
+                        notifications.append(note)
                     return {'notifications': notifications}
                 if path == '/outbox/receipt':
                     if (type(body.get('messageId')) is not int or body['messageId'] <= 0
@@ -145,7 +221,7 @@ class Application:
                                                  (claim_id, job['id'], job['lease']))
                         if job is None or job['status'] != 'generating':
                             return {'job': None}
-                        if job['kind'] != 'probe':
+                        if job['kind'] != 'probe' and not self.config.get('videoEnabled', False):
                             raise ValueError('Worker limité aux diagnostics sans média.')
                         question = store.db.execute('SELECT answer FROM questions WHERE id=?', (job['question'],)).fetchone()
                         return {'job': {k: job[k] for k in ['id', 'revision', 'option', 'kind', 'brief', 'session', 'result', 'lease']},
@@ -160,15 +236,40 @@ class Application:
                                 raise ValueError('Résultat différent pour un traitement déjà enregistré.')
                             return {'accepted': True}
                         job = store.get(result['jobId'])
-                        if job['lease'] != body['lease'] or job['kind'] != 'probe':
+                        if job['lease'] != body['lease'] or (job['kind'] != 'probe' and not self.config.get('videoEnabled', False)):
                             raise ValueError('Traitement obsolète ou non pris en charge.')
                         store.record(job['id'], result['revision'], result, result['sessionId'])
+                        if job['kind'] == 'video' and result['status'] == 'completed':
+                            if not result['checks']['technicalVideo'] or not result['checks']['visualImages']:
+                                raise ValueError('Vérifications vidéo manquantes.')
+                            descriptor = body['preview']
+                            media.read_verified(self.config['mediaRoot'], job['id'], result['revision'], descriptor)
+                            actual = media.probe(media.checked_path(self.config['mediaRoot'], job['id'], result['revision'], descriptor))
+                            if any(actual[k] != descriptor[k] for k in actual):
+                                raise ValueError('Caractéristiques vidéo incohérentes.')
+                            store.db.execute('INSERT INTO preview_media VALUES(?,?,?)',
+                                             (job['id'], result['revision'], json.dumps(descriptor)))
                         store.db.execute('INSERT INTO worker_receipts VALUES(?,?)', (body['lease'], result_hash))
                         return {'accepted': True}
                 if path == '/worker/failure':
                     store.fail(body['jobId'], body['lease'])
                     return {'accepted': True}
             raise PermissionError('Route non autorisée pour ce compte de service.')
+        finally:
+            store.close()
+
+    def video(self, role, job_id, revision):
+        if role != 'n8n':
+            raise PermissionError('Transport vidéo réservé à n8n.')
+        store = Store(self.config['database'])
+        try:
+            job = store.get(job_id)
+            if job['revision'] != revision or job['status'] not in ['awaiting_preview', 'awaiting_review']:
+                raise ValueError('Version vidéo indisponible.')
+            row = store.db.execute('SELECT media FROM preview_media WHERE job=? AND revision=?', (job_id, revision)).fetchone()
+            if not row:
+                raise ValueError('Prévisualisation absente.')
+            return media.read_verified(self.config['mediaRoot'], job_id, revision, json.loads(row['media']))
         finally:
             store.close()
 
@@ -187,13 +288,40 @@ def handler(application, tokens):
             self.wfile.write(data)
 
         def do_GET(self):
-            self.send(200 if self.path == '/healthz' else 404, {'ok': self.path == '/healthz'})
+            if self.path == '/healthz':
+                self.send(200, {'ok': True})
+                return
+            match = re.fullmatch(r'/media/([a-f0-9]{12})/([1-9][0-9]*)', self.path)
+            if not match:
+                self.send(404, {'error': 'Route inconnue.'})
+                return
+            role = self.role()
+            if role is None:
+                self.send(401, {'error': 'Authentification requise.'})
+                return
+            try:
+                data = application.video(role, match[1], int(match[2]))
+            except PermissionError:
+                self.send(403, {'error': 'Accès refusé.'})
+                return
+            except (ValueError, OSError):
+                self.send(409, {'error': 'Prévisualisation absente ou modifiée.'})
+                return
+            self.send_response(200)
+            self.send_header('Content-Type', 'video/mp4')
+            self.send_header('Content-Length', str(len(data)))
+            self.send_header('Content-Disposition', 'attachment; filename="preview.mp4"')
+            self.end_headers()
+            self.wfile.write(data)
+
+        def role(self):
+            supplied = self.headers.get('Authorization', '')
+            return next((name for name, token in tokens.items()
+                         if secrets.compare_digest(supplied.encode(), ('Bearer ' + token).encode())), None)
 
         def do_POST(self):
             self.connection.settimeout(20)
-            supplied = self.headers.get('Authorization', '')
-            role = next((name for name, token in tokens.items()
-                         if secrets.compare_digest(supplied.encode(), ('Bearer ' + token).encode())), None)
+            role = self.role()
             if role is None:
                 self.send(401, {'error': 'Authentification requise.'})
                 return
@@ -228,7 +356,7 @@ def main():
         raise ValueError('Deux secrets de transport distincts sont requis.')
     application = Application(config)
     server = ThreadingHTTPServer((config['bind'], config['port']), handler(application, tokens))
-    print('Bridge privé prêt ; publication et génération vidéo désactivées.', flush=True)
+    print('Bridge privé prêt ; publication désactivée.', flush=True)
     server.serve_forever()
 
 

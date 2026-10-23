@@ -23,6 +23,7 @@ PrivateDevices=yes
 ProtectSystem=strict
 ProtectHome=yes
 BindReadOnlyPaths=/root/projects/remotion-english-video:/srv/englizy-repository
+ReadOnlyPaths=/var/lib/englizy-media
 CapabilityBoundingSet=
 RestrictSUIDSGID=yes
 

@@ -64,13 +64,97 @@
       }
     },
     {
+      "id": "notification-video",
+      "name": "La notification contient une vidéo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        850,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "video",
+              "leftValue": "={{ $json.notification.kind }}",
+              "rightValue": "video",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "preview-download",
+      "name": "Récupérer le MP4 contrôlé sur le VPS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1150,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://REQUIRES-BRIDGE-CONFIGURATION{{ $json.notification.mediaPath }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "video"
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "preview-send",
+      "name": "Envoyer la prévisualisation MP4",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1450,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendVideo",
+        "chatId": "0",
+        "binaryData": true,
+        "binaryPropertyName": "video",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "caption": "={{ $(\"Préparer chaque notification\").item.json.notification.text }}",
+          "parse_mode": "HTML",
+          "width": "={{ $(\"Préparer chaque notification\").item.json.notification.width }}",
+          "height": "={{ $(\"Préparer chaque notification\").item.json.notification.height }}",
+          "duration": "={{ $(\"Préparer chaque notification\").item.json.notification.duration }}"
+        }
+      }
+    },
+    {
       "id": "notification-send",
       "name": "Envoyer la question ou le résultat",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        900,
-        0
+        1150,
+        230
       ],
       "parameters": {
         "resource": "message",
@@ -78,8 +162,11 @@
         "chatId": "0",
         "text": "={{ $json.notification.text }}",
         "additionalFields": {
-          "appendAttribution": false
-        }
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "={{ $json.notification.kind === \"menu\" ? \"inlineKeyboard\" : \"none\" }}",
+        "inlineKeyboard": "={{ $json.notification.keyboard }}"
       }
     },
     {
@@ -88,8 +175,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1200,
-        0
+        1780,
+        100
       ],
       "parameters": {
         "method": "POST",
@@ -150,7 +237,47 @@
       "main": [
         [
           {
+            "node": "La notification contient une vidéo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "La notification contient une vidéo": {
+      "main": [
+        [
+          {
+            "node": "Récupérer le MP4 contrôlé sur le VPS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Envoyer la question ou le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer le MP4 contrôlé sur le VPS": {
+      "main": [
+        [
+          {
+            "node": "Envoyer la prévisualisation MP4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer la prévisualisation MP4": {
+      "main": [
+        [
+          {
+            "node": "Conserver le reçu Telegram",
             "type": "main",
             "index": 0
           }
