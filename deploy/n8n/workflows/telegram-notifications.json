@@ -117,7 +117,7 @@
         -290
       ],
       "parameters": {
-        "content": "## Transport technique uniquement\nScrutation toutes les 10 secondes, aucun rappel quotidien. Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.",
+        "content": "## Transport technique uniquement\nScrutation toutes les 10 secondes, aucun rappel quotidien. Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. Les succès de scrutation ne sont pas conservés dans n8n ; erreurs conservées, reçus durables dans SQLite. Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.",
         "width": 850,
         "height": 230
       }
@@ -172,7 +172,9 @@
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
-    "saveDataSuccessExecution": "all",
-    "saveDataErrorExecution": "all"
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
   }
 }

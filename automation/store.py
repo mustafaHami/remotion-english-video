@@ -69,6 +69,8 @@ class Store:
         for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT')]:
             if name not in columns:
                 self.db.execute(f'ALTER TABLE jobs ADD COLUMN {name} {definition}')
+        if 'lease' not in {r[1] for r in self.db.execute('PRAGMA table_info(worker_claims)')}:
+            self.db.execute('ALTER TABLE worker_claims ADD COLUMN lease TEXT')
 
     def close(self):
         self.db.close()

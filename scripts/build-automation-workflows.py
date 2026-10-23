@@ -24,13 +24,14 @@ def http(identifier, name, path, body, x):
         retryOnFail=True, maxTries=3, waitBetweenTries=2000)
 
 
-def write(filename, name, nodes, connections, note, save='all'):
+def write(filename, name, nodes, connections, note, save='all', save_errors=None):
     nodes.append(node(filename + '-note', 'Fonctionnement et limites', 'stickyNote', 1, 0,
         {'content': note, 'width': 850, 'height': 230}))
     nodes[-1]['position'] = [0, -290]
     value = {'name': name, 'nodes': nodes, 'connections': connections,
              'settings': {'executionOrder': 'v1', 'timezone': 'Europe/Paris',
-                          'saveDataSuccessExecution': save, 'saveDataErrorExecution': save}}
+                          'saveDataSuccessExecution': save, 'saveDataErrorExecution': save_errors or save,
+                          'saveExecutionProgress': False, 'saveManualExecutions': False}}
     (DEST / (filename + '.json')).write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
 
 
@@ -74,7 +75,8 @@ write('telegram-notifications', 'Englizy — Questions et résultats vers Telegr
     '## Transport technique uniquement\nScrutation toutes les 10 secondes, aucun rappel quotidien. '
     'Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. '
     'Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. '
-    'Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.')
+    'Les succès de scrutation ne sont pas conservés dans n8n ; erreurs conservées, reçus durables dans SQLite. '
+    'Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.', save='none', save_errors='all')
 
 webhook = node('diagnostic-webhook', 'Recevoir un diagnostic autorisé', 'webhook', 2.1, 0,
     {'httpMethod': 'POST', 'path': 'REQUIRES-UNIQUE-DIAGNOSTIC-PATH', 'authentication': 'headerAuth',

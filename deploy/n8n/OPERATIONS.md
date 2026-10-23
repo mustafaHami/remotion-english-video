@@ -106,7 +106,7 @@ Le récepteur durable utilise le **Telegram Trigger 1.2**, livré dans l'image a
 | --- | --- | --- |
 | Réception Telegram et tâches durables | `ypqdFC3lJ6UP2nj0` | Actif, seul récepteur de ce bot |
 | Questions et résultats vers Telegram | `i3qVaC6RQOB6wuqT` | Actif, notifications via nœud Telegram |
-| Lancer un diagnostic Codex sans vidéo | `dFCuaedtvxhzK6tg` | Actif, webhook HTTPS authentifié |
+| Lancer un diagnostic Codex sans vidéo | `dFCuaedtvxhzK6tg` | Désactivé après contrôle, webhook `404` |
 
 Les exports dans `deploy/n8n/workflows` restent génériques : aucun secret ni identité personnelle. `scripts/build-automation-workflows.py` les reconstruit. `scripts/install-codex-workflows.py --activate` les installe en utilisant les références privées, sans lire le jeton Telegram ; il conserve les workflows déjà référencés plutôt que d'écraser leurs modifications. Il refuse un second récepteur actif. Le workflow de notifications consulte la boîte durable **toutes les 10 secondes** : ce déclencheur technique n'est ni un rappel quotidien, ni un lancement de vidéo, ni une publication. Aucun horaire quotidien n'est activé.
 
@@ -158,11 +158,15 @@ sudo python3 scripts/install-automation-services.py --start
 
 L'installation copie les modules et unités, conserve les secrets et le cache existants et remet les services en route. Vérifier santé, états et webhooks avant de réactiver l'entrée. Les workflows existants ne sont pas mis à jour automatiquement : examiner leur export et leurs modifications avant application. Pour un retour arrière, conserver le code et les unités précédents et vérifier la compatibilité du schéma SQLite ; ne jamais restaurer une ancienne base par-dessus les nouvelles réponses ou validations.
 
+## Audit complémentaire
+
+Voir [DIAGNOSTIC-AUDIT.md](DIAGNOSTIC-AUDIT.md) pour les contrôles de rétention, de déduplication et de redémarrage. Les succès de scrutation ne sont désormais plus conservés dans n8n ; les erreurs et reçus durables restent disponibles.
+
 ## Contrôles et suite
 
 `npm ci`, installation des requirements dans `.venv`, `npm run browser`, `npm run check`, `npm test`, `npm run verify` exécutés avec succès sur le VPS. Les contrôles existants des 14 options passent avec Node 24 ; le projet recommande Node 22 et la CI utilise toujours Node 22.
 
-34 scénarios d'automatisation **simulés** passent, intégrés à `npm test` : événements dédupliqués, rollback, génération unique, question conservée/reprise exacte, mauvais propriétaire/conversation/session, accord persistant vérifié depuis un nouveau processus Python, empreintes modifiées, double clic concurrent, ancienne version, annulation, interruption, publication inconnue et succès partiels, erreur explicite, option invalide, JSON hors contrat, fichiers absents/hors périmètre, données shell jamais passées en arguments de commande. Les tests de gestion Telegram vérifient aussi la lecture du candidat dans n8n, l'absence d'appel direct au bot et de copie de son jeton, ainsi que le refus d'un autre récepteur actif. Le helper Git refuse les autres hôtes et dépôts ; le lanceur CLI transmet son jeton seulement par environnement et interdit son affichage.
+39 scénarios d'automatisation **simulés** passent, intégrés à `npm test` : événements dédupliqués, rollback, génération unique, question conservée/reprise exacte, mauvais propriétaire/conversation/session, accord persistant vérifié depuis un nouveau processus Python, empreintes modifiées, double clic concurrent, ancienne version, annulation, interruption, publication inconnue et succès partiels, erreur explicite, option invalide, JSON hors contrat, fichiers absents/hors périmètre, données shell jamais passées en arguments de commande. Les tests de gestion Telegram vérifient aussi la lecture du candidat dans n8n, l'absence d'appel direct au bot et de copie de son jeton, ainsi que le refus d'un autre récepteur actif. Le helper Git refuse les autres hôtes et dépôts ; le lanceur CLI transmet son jeton seulement par environnement et interdit son affichage.
 
 Les tests supplémentaires du bridge vérifient les rôles HTTP, l'identité des messages/callbacks, les retries sans doublon, la corrélation de session, les réponses ambiguës, les reçus et l'absence de relance après interruption. Pas de changement visuel : aucun nouveau rendu ni écoute vidéo n'est présenté comme effectué. Il reste à tester réellement : réponse Telegram reprenant la session après redémarrage, compte Telegram non autorisé, panne de voix/rendu, MP4 volumineux et session expirée.
 

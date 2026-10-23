@@ -78,6 +78,59 @@ class BridgeTests(unittest.TestCase):
         self.assertEqual(len(store.pending()), 1)
         store.close()
 
+    def test_old_worker_claim_cannot_reserve_a_later_turn(self):
+        created = self.app.route('n8n', '/diagnostics', {})
+        first = self.claim()['job']
+        self.submit(first)
+        self.app.route('n8n', '/telegram', self.update(5, 'REPRISE'))
+        current = self.claim('b' * 32)['job']
+        self.assertEqual(first['id'], current['id'])
+        self.assertNotEqual(first['lease'], current['lease'])
+        self.assertIsNone(self.claim()['job'])
+        self.assertEqual(self.claim('b' * 32)['job'], current)
+        self.assertEqual(created['jobId'], current['id'])
+
+    def test_duplicate_answer_and_old_question_do_not_restart_completed_job(self):
+        created = self.app.route('n8n', '/diagnostics', {})
+        self.submit(self.claim()['job'])
+        answer = self.update(6, 'REPRISE')
+        self.app.route('n8n', '/telegram', answer)
+        resumed = self.claim('b' * 32)['job']
+        self.submit(resumed, 'completed')
+        self.app = Application(self.config)
+        self.app.route('n8n', '/telegram', answer)
+        self.assertIsNone(self.claim('c' * 32)['job'])
+        store = Store(self.config['database'])
+        self.assertEqual(store.get(created['jobId'])['status'], 'completed')
+        self.assertEqual(store.db.execute("SELECT COUNT(*) FROM audit WHERE action='claimed'").fetchone()[0], 2)
+        store.close()
+
+    def test_lost_submission_response_is_retried_without_running_codex_again(self):
+        directory = Path(self.tmp.name) / 'worker'
+        self.app.route('n8n', '/diagnostics', {})
+        lost = [False]
+        calls = []
+        def transport(url, token, path, body):
+            response = self.app.route('worker', path, copy.deepcopy(body))
+            if path == '/worker/result' and not lost[0]:
+                lost[0] = True
+                raise OSError('Réponse perdue après commit serveur')
+            return response
+        def run(job, *args, **kwargs):
+            calls.append(job['id'])
+            return self.result(job)
+        config = {'stateDir': str(directory), 'bridge': 'http://example.invalid'}
+        with patch.object(worker, 'request', side_effect=transport), patch.object(worker, 'run', side_effect=run):
+            with self.assertRaises(OSError):
+                worker.cycle(config, 'fake')
+            self.assertEqual(json.loads((directory / 'active.json').read_text())['phase'], 'submitting')
+            self.app = Application(self.config)
+            worker.cycle(config, 'fake')
+        self.assertEqual(len(calls), 1)
+        store = Store(self.config['database'])
+        self.assertEqual(store.db.execute('SELECT COUNT(*) FROM questions').fetchone()[0], 1)
+        store.close()
+
     def test_real_protocol_question_answer_result_and_exact_session(self):
         created = self.app.route('n8n', '/diagnostics', {})
         job = self.claim()['job']

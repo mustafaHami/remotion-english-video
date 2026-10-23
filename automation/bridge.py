@@ -133,13 +133,16 @@ class Application:
                     if not isinstance(claim_id, str) or not re.fullmatch('[a-f0-9]{32}', claim_id):
                         raise ValueError('Identifiant de réservation invalide.')
                     with store.tx():
-                        previous = store.db.execute('SELECT job FROM worker_claims WHERE id=?', (claim_id,)).fetchone()
+                        previous = store.db.execute('SELECT job,lease FROM worker_claims WHERE id=?', (claim_id,)).fetchone()
                         if previous:
                             job = store.get(previous['job']) if previous['job'] else None
+                            if job and job['lease'] != previous['lease']:
+                                return {'job': None}
                         else:
                             job = store.claim()
                             if job:
-                                store.db.execute('INSERT INTO worker_claims VALUES(?,?)', (claim_id, job['id']))
+                                store.db.execute('INSERT INTO worker_claims(id,job,lease) VALUES(?,?,?)',
+                                                 (claim_id, job['id'], job['lease']))
                         if job is None or job['status'] != 'generating':
                             return {'job': None}
                         if job['kind'] != 'probe':

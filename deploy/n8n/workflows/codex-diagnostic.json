@@ -76,6 +76,8 @@
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
     "saveDataSuccessExecution": "none",
-    "saveDataErrorExecution": "none"
+    "saveDataErrorExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
   }
 }
