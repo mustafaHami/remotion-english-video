@@ -1,0 +1,31 @@
+{
+  "name": "Englizy — Test de connexion HTTPS (sans publication)",
+  "nodes": [
+    {
+      "id": "connection-webhook",
+      "name": "Recevoir le test technique",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [0, 0],
+      "parameters": {"httpMethod": "POST", "path": "REPLACED-BY-INSTALLER", "responseMode": "responseNode", "options": {}}
+    },
+    {
+      "id": "connection-response",
+      "name": "Confirmer la connexion uniquement",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [300, 0],
+      "parameters": {"respondWith": "json", "responseBody": "{\"ok\":true,\"service\":\"englizy-n8n\",\"publishing\":false}", "options": {}}
+    },
+    {
+      "id": "connection-note",
+      "name": "Limites du test",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -240],
+      "parameters": {"content": "## Test de liaison\nVérifie API → workflow → webhook HTTPS. Aucun secret reçu, aucun média, aucune publication. Désactivé en fin de test.", "width": 620, "height": 180}
+    }
+  ],
+  "connections": {"Recevoir le test technique": {"main": [[{"node": "Confirmer la connexion uniquement", "type": "main", "index": 0}]]}},
+  "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "none", "saveDataErrorExecution": "none"}
+}

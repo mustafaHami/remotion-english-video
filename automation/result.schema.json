@@ -1,0 +1,35 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["jobId", "revision", "status", "sessionId", "questionId", "question", "artifacts", "checks", "summary", "error"],
+  "properties": {
+    "jobId": {"type": "string"},
+    "revision": {"type": "integer"},
+    "status": {"type": "string", "enum": ["needs_input", "completed", "failed"]},
+    "sessionId": {"type": ["string", "null"]},
+    "questionId": {"type": ["string", "null"]},
+    "question": {"type": ["string", "null"]},
+    "artifacts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["video", "episode", "manifest", "inspection"],
+      "properties": {
+        "video": {"type": ["string", "null"]},
+        "episode": {"type": ["string", "null"]},
+        "manifest": {"type": ["string", "null"]},
+        "inspection": {"type": ["string", "null"]}
+      }
+    },
+    "checks": {
+      "type": "object", "additionalProperties": false,
+      "required": ["technicalVideo", "visualImages", "subjectiveListening", "notes"],
+      "properties": {
+        "technicalVideo": {"type": "boolean"},
+        "visualImages": {"type": "boolean"},
+        "subjectiveListening": {"type": "boolean"},
+        "notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "summary": {"type": "string"},
+    "error": {"type": ["string", "null"]}
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "Englizy — Associer le compte Telegram (aucun envoi)",
+  "nodes": [
+    {
+      "id": "pairing-trigger",
+      "name": "Recevoir le code d’association",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [0, 0],
+      "parameters": {"updates": ["message"], "additionalFields": {}}
+    },
+    {
+      "id": "pairing-challenge",
+      "name": "Reconnaître le code privé",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [280, 0],
+      "parameters": {"conditions": {"options": {"caseSensitive": true, "typeValidation": "strict", "version": 2}, "combinator": "and", "conditions": [
+        {"id": "challenge", "leftValue": "={{ $json.message.text }}", "rightValue": "REPLACED-BY-INSTALLER", "operator": {"type": "string", "operation": "equals"}},
+        {"id": "private", "leftValue": "={{ $json.message.chat.type }}", "rightValue": "private", "operator": {"type": "string", "operation": "equals"}}
+      ]}, "options": {}}
+    },
+    {
+      "id": "pairing-save",
+      "name": "Conserver le candidat sans lui répondre",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [570, -80],
+      "parameters": {}
+    },
+    {
+      "id": "pairing-note",
+      "name": "Identité à confirmer",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -290],
+      "parameters": {"content": "## Association seulement\nAucun envoi Telegram. Le jeton reste dans les identifiants n8n. Un code temporaire permet de retrouver les IDs numériques dans cette exécution ; l’utilisateur doit ensuite les confirmer explicitement. Un seul workflow de réception actif pour ce bot. Désactiver après association. L’activation du Trigger 1.5 efface les updates en attente : test ponctuel uniquement.", "width": 800, "height": 220}
+    }
+  ],
+  "connections": {
+    "Recevoir le code d’association": {"main": [[{"node": "Reconnaître le code privé", "type": "main", "index": 0}]]},
+    "Reconnaître le code privé": {"main": [[{"node": "Conserver le candidat sans lui répondre", "type": "main", "index": 0}], []]}
+  },
+  "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "all", "saveDataErrorExecution": "none"}
+}

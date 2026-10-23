@@ -1,0 +1,31 @@
+{
+  "name": "Englizy — Test Telegram privé (sans production)",
+  "nodes": [
+    {
+      "id": "telegram-private-trigger",
+      "name": "Recevoir uniquement le compte confirmé",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.5,
+      "position": [0, 0],
+      "parameters": {"updates": ["message", "callback_query"], "additionalFields": {"chatIds": "0", "userIds": "0"}}
+    },
+    {
+      "id": "telegram-private-response",
+      "name": "Confirmer la réception privée",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [330, 0],
+      "parameters": {"resource": "message", "operation": "sendMessage", "chatId": "0", "text": "Réception Telegram → HTTPS → n8n vérifiée. Test technique uniquement ; aucune production ni publication déclenchée.", "additionalFields": {"appendAttribution": false}}
+    },
+    {
+      "id": "telegram-note",
+      "name": "Association et limites",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -260],
+      "parameters": {"content": "## Test privé uniquement\nL'installateur renseigne les deux identifiants numériques confirmés et les références de credentials. Les valeurs 0 refusent tous les comptes. Le Trigger 1.5 vérifie le secret Telegram et filtre aussi les callbacks. Ce test n'est pas le workflow de production : cette version du Trigger supprime les updates en attente lors de son activation.", "width": 700, "height": 220}
+    }
+  ],
+  "connections": {"Recevoir uniquement le compte confirmé": {"main": [[{"node": "Confirmer la réception privée", "type": "main", "index": 0}]]}},
+  "settings": {"executionOrder": "v1", "saveDataSuccessExecution": "all", "saveDataErrorExecution": "none"}
+}
