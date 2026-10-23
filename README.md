@@ -19,6 +19,22 @@ npm run dev
 
 Remotion Studio affiche `Option1` à `Option14`. Il n’y a pas de nouveau projet à créer pour chaque vidéo.
 
+## Créer une vidéo avec l’agent
+
+Lancer `$create-english-video` dans Codex (ou `/create-english-video` dans Claude Code). Tu choisis uniquement l’option parmi les 14 formats. Le skill consulte toutes les entrées de sa colonne dans l’Excel, le Journal, l’historique JSON et les épisodes existants, puis choisit un sujet et des exercices différents. Il annonce son choix et poursuit la création sans te demander de fournir le contenu. Les réglages visuels et les voix validés sont conservés par défaut. Il prépare ensuite le contenu, les voix, le rendu et les contrôles.
+
+Chaque réalisation possède son dossier, par exemple `output/options/option-4/2026-10-21_14-35-07/option-4.mp4`. `creation.json` indique l’heure de création en Europe/Paris, les dates UTC de fin de rendu et de contrôle ainsi que l’état réel du traitement. Les précédentes vidéos sont conservées ; un rendu n’est pas une publication.
+
+Pour l’agent ou une utilisation manuelle :
+
+```sh
+npm run video:new -- --option=4
+# Adapter le fichier content/episodes/... renvoyé au brief ; il contient encore le modèle.
+npm run video:new -- --render="output/options/option-4/<date_heure>/creation.json"
+```
+
+La seconde commande prépare les WAV, les tracés éventuels, le MP4 et le rapport technique. Elle utilise `.venv` si disponible, sinon `python` ; `PYTHON` permet de choisir un autre interpréteur. Le skill effectue ensuite la revue des captures et décrit précisément les vérifications réalisées. La publication reste une étape distincte.
+
 ## Produire une vidéo
 
 ```sh
