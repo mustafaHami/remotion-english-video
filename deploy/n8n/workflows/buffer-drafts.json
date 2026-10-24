@@ -1,0 +1,261 @@
+{
+  "name": "Englizy — Brouillons Buffer (sans publication)",
+  "nodes": [
+    {
+      "id": "buffer-trigger",
+      "name": "Demande de brouillon autorisée",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REQUIRES-PRIVATE-PATH",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "buffer-claim",
+      "name": "Réserver une seule création",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/buffer/drafts/claim",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({jobId:$json.body.jobId,revision:$json.body.revision,channelId:$json.body.channelId,dispatchId:String($execution.id)}) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "buffer-split",
+      "name": "Brouillon réservé",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "requests",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "draft"
+        }
+      }
+    },
+    {
+      "id": "buffer-create",
+      "name": "Buffer — créer uniquement un brouillon",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.buffer.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.draft.request) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "buffer-receipt",
+      "name": "Conserver le résultat sans publier",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/buffer/drafts/receipt",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({jobId:$(\"Brouillon réservé\").item.json.draft.jobId,revision:$(\"Brouillon réservé\").item.json.draft.revision,channelId:$(\"Brouillon réservé\").item.json.draft.channelId,dispatchId:$(\"Brouillon réservé\").item.json.draft.dispatchId,response:$json}) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "buffer-has-request",
+      "name": "Une création reste nécessaire",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        470,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "prepared",
+              "leftValue": "={{ $json.requests.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "buffer-duplicate",
+      "name": "Brouillon déjà traité — aucun nouvel envoi",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        750,
+        250
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "buffer-note",
+      "name": "Limites et reprise",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -300
+      ],
+      "parameters": {
+        "content": "## Brouillons Buffer uniquement\nWebhook authentifié, aucun horaire et aucun Telegram Trigger. Le bridge exige une vidéo validée et une destination préparée explicitement. La requête GraphQL impose saveToDraft=true, sans dueAt. Une réservation SQLite empêche les doublons même après redémarrage. Aucune relance automatique de Buffer : un résultat inconnu nécessite une réconciliation. Les reçus et notifications sont persistés ; aucun statut shared ni accord de publication créé. Exécutions non conservées pour protéger l’en-tête du webhook. Les erreurs restent visibles dans les états durables.",
+        "width": 1000,
+        "height": 240
+      }
+    }
+  ],
+  "connections": {
+    "Demande de brouillon autorisée": {
+      "main": [
+        [
+          {
+            "node": "Réserver une seule création",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réserver une seule création": {
+      "main": [
+        [
+          {
+            "node": "Une création reste nécessaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Brouillon réservé": {
+      "main": [
+        [
+          {
+            "node": "Buffer — créer uniquement un brouillon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer — créer uniquement un brouillon": {
+      "main": [
+        [
+          {
+            "node": "Conserver le résultat sans publier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une création reste nécessaire": {
+      "main": [
+        [
+          {
+            "node": "Brouillon réservé",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Brouillon déjà traité — aucun nouvel envoi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
+  }
+}

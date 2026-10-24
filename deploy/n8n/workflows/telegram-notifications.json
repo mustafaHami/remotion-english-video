@@ -1,0 +1,374 @@
+{
+  "name": "Englizy — Questions et résultats vers Telegram",
+  "nodes": [
+    {
+      "id": "notification-poll",
+      "name": "Consulter les notifications en attente",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "daily-summary-clock",
+      "name": "Récapitulatif quotidien à 09h Paris",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        450
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "daily-summary-request",
+      "name": "Préparer le récapitulatif du jour",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        450
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/daily-summary",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "notification-reserve",
+      "name": "Réserver les notifications sans doublon",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/outbox/claim",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({dispatchId:String($execution.id)}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "notification-split",
+      "name": "Préparer chaque notification",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        600,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "notifications",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "notification"
+        }
+      }
+    },
+    {
+      "id": "notification-video",
+      "name": "La notification contient une vidéo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        850,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "video",
+              "leftValue": "={{ $json.notification.kind }}",
+              "rightValue": "video",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "preview-download",
+      "name": "Récupérer le MP4 contrôlé sur le VPS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1150,
+        0
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=http://REQUIRES-BRIDGE-CONFIGURATION{{ $json.notification.mediaPath }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "video"
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "preview-send",
+      "name": "Envoyer la prévisualisation MP4",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1450,
+        0
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendVideo",
+        "chatId": "0",
+        "binaryData": true,
+        "binaryPropertyName": "video",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "caption": "={{ $(\"Préparer chaque notification\").item.json.notification.text }}",
+          "parse_mode": "HTML",
+          "width": "={{ $(\"Préparer chaque notification\").item.json.notification.width }}",
+          "height": "={{ $(\"Préparer chaque notification\").item.json.notification.height }}",
+          "duration": "={{ $(\"Préparer chaque notification\").item.json.notification.duration }}"
+        }
+      }
+    },
+    {
+      "id": "notification-send",
+      "name": "Envoyer la question ou le résultat",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1150,
+        230
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "0",
+        "text": "={{ $json.notification.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        },
+        "replyMarkup": "={{ $json.notification.kind === \"menu\" ? \"inlineKeyboard\" : \"none\" }}",
+        "inlineKeyboard": "={{ $json.notification.keyboard }}"
+      }
+    },
+    {
+      "id": "notification-receipt",
+      "name": "Conserver le reçu Telegram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1780,
+        100
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/outbox/receipt",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({id:$(\"Préparer chaque notification\").item.json.notification.id, messageId:$json.message_id ?? $json.result?.message_id, chatId:$json.chat?.id ?? $json.result?.chat?.id}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "telegram-notifications-note",
+      "name": "Fonctionnement et limites",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -290
+      ],
+      "parameters": {
+        "content": "## Notifications et suivi\nScrutation technique toutes les 10 secondes. Récapitulatif quotidien à 09h Europe/Paris autorisé par l’utilisateur. Question persistée avant envoi ; reçu conservé avec son identifiant de tâche/question. Un envoi Telegram ne se répète pas automatiquement après un résultat inconnu. Les succès de scrutation ne sont pas conservés dans n8n ; erreurs conservées, reçus durables dans SQLite. Le jeton Telegram reste dans les identifiants n8n. Pas de publication sociale.",
+        "width": 850,
+        "height": 230
+      }
+    }
+  ],
+  "connections": {
+    "Récapitulatif quotidien à 09h Paris": {
+      "main": [
+        [
+          {
+            "node": "Préparer le récapitulatif du jour",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer le récapitulatif du jour": {
+      "main": [
+        [
+          {
+            "node": "Réserver les notifications sans doublon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consulter les notifications en attente": {
+      "main": [
+        [
+          {
+            "node": "Réserver les notifications sans doublon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réserver les notifications sans doublon": {
+      "main": [
+        [
+          {
+            "node": "Préparer chaque notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Préparer chaque notification": {
+      "main": [
+        [
+          {
+            "node": "La notification contient une vidéo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "La notification contient une vidéo": {
+      "main": [
+        [
+          {
+            "node": "Récupérer le MP4 contrôlé sur le VPS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envoyer la question ou le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Récupérer le MP4 contrôlé sur le VPS": {
+      "main": [
+        [
+          {
+            "node": "Envoyer la prévisualisation MP4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer la prévisualisation MP4": {
+      "main": [
+        [
+          {
+            "node": "Conserver le reçu Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer la question ou le résultat": {
+      "main": [
+        [
+          {
+            "node": "Conserver le reçu Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
+  }
+}

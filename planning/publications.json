@@ -33,5 +33,44 @@
     "platforms": [],
     "publicationUrls": [],
     "source": "Publication confirmée par l’utilisateur le 21/10/2026 ; plateformes et liens non fournis."
+  },
+  {
+    "id": "ecee3555f0c8",
+    "date": "2026-10-24",
+    "option": 1,
+    "status": "published",
+    "content": [
+      "I work. I worked.",
+      "I walk. I walked.",
+      "I cook. I cooked.",
+      "I clean. I cleaned.",
+      "I wash. I washed.",
+      "I help. I helped.",
+      "I call. I called.",
+      "I talk. I talked.",
+      "I listen. I listened.",
+      "I rest. I rested.",
+      "I will work.",
+      "I will walk.",
+      "I will cook.",
+      "I will clean.",
+      "I will wash.",
+      "I will help.",
+      "I will call.",
+      "I will talk.",
+      "I will listen.",
+      "I will rest."
+    ],
+    "platforms": [
+      "instagram",
+      "tiktok",
+      "youtube"
+    ],
+    "publicationUrls": [
+      "https://www.instagram.com/reel/De3o9Ooj0Wo/",
+      "https://tiktok.com/@englizygo/video/7700139194793889057",
+      "https://www.youtube.com/watch?v=LnhpfHyuG5w"
+    ],
+    "source": "Publication terminée confirmée : Buffer : chaque destination au statut sent, avec date et mode automatique."
   }
 ]

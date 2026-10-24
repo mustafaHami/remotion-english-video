@@ -5,13 +5,19 @@
 - **Calendrier** : exactement Date + Option 1 à Option 14. Une cellule contient un brief ou le contenu publié, et peut désigner un fichier JSON d’épisode. Les cellules futures vides ne constituent pas des demandes de publication.
 - **Journal** : une ligne par vidéo, avec date, option, contenu complet, statut, identifiant et liens.
 
+Le Journal suit aussi les vidéos non publiées : `pending_validation` après l'envoi privé, `validated` après validation de cette version, `shared` après publication terminée sur les réseaux. `shared` signifie tâche close ; une vidéo validée reste ouverte. Les anciennes lignes « Publié » restent préservées et sont normalisées en `shared` dans `production.json`.
+
+`production.json` est la projection lisible des tâches et des lignes externes du Journal. Elle ne contient aucun identifiant de compte ni secret. La tâche `ecee3555f0c8` (option 1, création le 24/10/2026 en heure de Paris) y figure comme `shared`, après l’accord explicite puis les confirmations Buffer du 24/10/2026 sur Instagram, TikTok et YouTube. Le registre `publications.json` contient désormais trois publications confirmées, dont les deux historiques préservées. Les liens et reçus sont décrits dans [PUBLICATION.md](../deploy/n8n/PUBLICATION.md).
+
 Le 20/10/2026, les options 3 et 4 ont été publiées selon déclaration de l’utilisateur. Les contenus exacts figurent dans le classeur et `publications.json`. Plateformes et liens n’ont pas été fournis : ils restent vides.
 
 ## Source des données
 
 L’Excel est l’entrée humaine du planning. `python scripts/planning/import-calendar.py` lit le classeur ; `--write` synchronise explicitement `calendar.json`. `publications.json` est le registre structuré des publications confirmées et des réservations du pipeline. Ne pas remplacer ce registre à partir d’une cellule libre du planning.
 
-Après un reçu confirmé, l’agent reporte les mêmes informations dans le Journal et la cellule concernée. Préserver les autres cellules. Le constructeur `scripts/planning/build-workbook.mjs` sert à recréer le classeur depuis les deux JSON après synchronisation ; il nécessite le SDK de la compétence Spreadsheets (`ARTIFACT_TOOL_MODULE` si le runtime le fournit). Ne pas le relancer sur un Excel modifié sans importer d’abord le planning et préserver le journal. L’installation de ce mécanisme de synchronisation sur le VPS reste un TODO.
+Le service `englizy-tracking` synchronise le Journal, les blocs de suivi du Calendrier et `production.json` environ chaque minute. Après une publication confirmée, il ajoute également la fiche au registre `publications.json` avec le statut historique compatible `published`. Il conserve les briefs existants et sauvegarde le classeur avant modification. Une ligne gérée par le service et modifiée manuellement provoque un arrêt explicite pour réconciliation, plutôt qu'un écrasement. Modifier les états via les commandes Telegram ; les nouvelles lignes humaines du Journal restent lisibles dans le suivi.
+
+Le constructeur historique `scripts/planning/build-workbook.mjs` refuse désormais une reconstruction lorsqu'un suivi de production existe. Utiliser `scripts/planning/maintain-tracking.py --config /etc/englizy/tracking.json` sur le VPS. Ce script n'exécute aucune publication. Les règles et preuves opérationnelles figurent dans [TRACKING.md](../deploy/n8n/TRACKING.md).
 
 ## Variété
 

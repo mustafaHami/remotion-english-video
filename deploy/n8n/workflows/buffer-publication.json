@@ -1,0 +1,450 @@
+{
+  "name": "Englizy — Publication autorisée et suivi Buffer",
+  "nodes": [
+    {
+      "id": "publication-timer",
+      "name": "Suivre les accords et résultats",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "publication-webhook",
+      "name": "Contrôle opérateur authentifié",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        250
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REQUIRES-PRIVATE-PATH",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "publication-claim",
+      "name": "Réserver les lectures nécessaires",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        250,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/buffer/publications/claim",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "publication-has-read",
+      "name": "Une lecture est nécessaire",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "publication-has-read",
+              "leftValue": "={{ $json.reads.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "publication-read-split",
+      "name": "Lecture réservée",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        700,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "reads",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "reading"
+        }
+      }
+    },
+    {
+      "id": "publication-read",
+      "name": "Buffer — relire le brouillon ou le résultat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        950,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.buffer.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.reading.request) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "publication-preflight",
+      "name": "Vérifier accord et contenu avant envoi",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/buffer/publications/preflight",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({postId:$(\"Lecture réservée\").item.json.reading.postId,response:$json,dispatchId:String($execution.id)}) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "publication-has-mutation",
+      "name": "Une publication est autorisée",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1430,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "publication-has-mutation",
+              "leftValue": "={{ $json.mutations.length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "publication-mutation-split",
+      "name": "Publication réservée une seule fois",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1650,
+        0
+      ],
+      "parameters": {
+        "fieldToSplitOut": "mutations",
+        "include": "noOtherFields",
+        "options": {
+          "destinationFieldName": "publishing"
+        }
+      }
+    },
+    {
+      "id": "publication-send",
+      "name": "Buffer — publier la version autorisée",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1900,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.buffer.com",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.publishing.request) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "retryOnFail": false
+    },
+    {
+      "id": "publication-receipt",
+      "name": "Conserver le résultat de la demande",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2150,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/buffer/publications/receipt",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({postId:$(\"Publication réservée une seule fois\").item.json.publishing.postId,dispatchId:$(\"Publication réservée une seule fois\").item.json.publishing.dispatchId,response:$json}) }}",
+        "options": {
+          "timeout": 120000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "publication-idle",
+      "name": "Aucun nouvel envoi nécessaire",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        350
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "publication-note",
+      "name": "Accord exact et reprise",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -300
+      ],
+      "parameters": {
+        "width": 1200,
+        "height": 240,
+        "content": "## Publication uniquement après accord explicite\nUn accord lie tâche, version, SHA-256, légendes, réglages, comptes et identifiants des brouillons. PUBLISH_ENABLED=true est aussi requis. La lecture Buffer compare le contenu avant la mutation editPost shareNow. Réservation durable avant mutation, aucun retry de publication. Les relances suivantes lisent uniquement les résultats. Lecture espacée progressivement, huit contrôles maximum avant intervention. Un résultat partiel garde la tâche ouverte. Seuls sent + sentAt + mode automatique sur toutes les destinations autorisent shared et Excel. Le minuteur technique ne crée aucune vidéo ni accord ; sans tâche autorisée il ne contacte pas Buffer."
+      }
+    }
+  ],
+  "connections": {
+    "Suivre les accords et résultats": {
+      "main": [
+        [
+          {
+            "node": "Réserver les lectures nécessaires",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contrôle opérateur authentifié": {
+      "main": [
+        [
+          {
+            "node": "Réserver les lectures nécessaires",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Réserver les lectures nécessaires": {
+      "main": [
+        [
+          {
+            "node": "Une lecture est nécessaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lecture réservée": {
+      "main": [
+        [
+          {
+            "node": "Buffer — relire le brouillon ou le résultat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer — relire le brouillon ou le résultat": {
+      "main": [
+        [
+          {
+            "node": "Vérifier accord et contenu avant envoi",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Vérifier accord et contenu avant envoi": {
+      "main": [
+        [
+          {
+            "node": "Une publication est autorisée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Publication réservée une seule fois": {
+      "main": [
+        [
+          {
+            "node": "Buffer — publier la version autorisée",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buffer — publier la version autorisée": {
+      "main": [
+        [
+          {
+            "node": "Conserver le résultat de la demande",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une lecture est nécessaire": {
+      "main": [
+        [
+          {
+            "node": "Lecture réservée",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aucun nouvel envoi nécessaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Une publication est autorisée": {
+      "main": [
+        [
+          {
+            "node": "Publication réservée une seule fois",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Aucun nouvel envoi nécessaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
+  }
+}

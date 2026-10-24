@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "videos": [
+    {
+      "id": "2026-10-20-option-3",
+      "date": "2026-10-20",
+      "option": 3,
+      "status": "shared",
+      "revision": 1,
+      "content": [
+        "big / small",
+        "hot / cold",
+        "fast / slow",
+        "open / closed",
+        "happy / sad",
+        "near / far",
+        "light / dark",
+        "full / empty",
+        "early / late",
+        "strong / weak"
+      ],
+      "platforms": [],
+      "publicationUrls": [],
+      "source": "Publication confirmée par l’utilisateur le 21/10/2026 ; plateformes et liens non fournis.",
+      "external": true
+    },
+    {
+      "id": "2026-10-20-option-4",
+      "date": "2026-10-20",
+      "option": 4,
+      "status": "shared",
+      "revision": 1,
+      "content": [
+        "Can you do me a favor? (réponse : do)",
+        "I need to make a decision. (réponse : make)",
+        "Let’s take a break. (réponse : take)"
+      ],
+      "platforms": [],
+      "publicationUrls": [],
+      "source": "Publication confirmée par l’utilisateur le 21/10/2026 ; plateformes et liens non fournis.",
+      "external": true
+    },
+    {
+      "id": "ecee3555f0c8",
+      "date": "2026-10-24",
+      "option": 1,
+      "status": "shared",
+      "revision": 2,
+      "content": [
+        "I work. I worked.",
+        "I walk. I walked.",
+        "I cook. I cooked.",
+        "I clean. I cleaned.",
+        "I wash. I washed.",
+        "I help. I helped.",
+        "I call. I called.",
+        "I talk. I talked.",
+        "I listen. I listened.",
+        "I rest. I rested.",
+        "I will work.",
+        "I will walk.",
+        "I will cook.",
+        "I will clean.",
+        "I will wash.",
+        "I will help.",
+        "I will call.",
+        "I will talk.",
+        "I will listen.",
+        "I will rest."
+      ],
+      "summary": "Prévisualisation de l’option 1 créée le 24/10/2026 à 00:09:29, heure de Paris : dix verbes réguliers du quotidien au présent, passé et futur.",
+      "episode": "content/episodes/2026-10-24_00-09-29-option-1.json",
+      "validatedAt": "2026-10-23T23:11:42.211007+00:00",
+      "sharedAt": "2026-10-24T07:55:05.245695+00:00",
+      "closedAt": "2026-10-24T07:55:05.245695+00:00",
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "publicationUrls": [
+        "https://www.instagram.com/reel/De3o9Ooj0Wo/",
+        "https://tiktok.com/@englizygo/video/7700139194793889057",
+        "https://www.youtube.com/watch?v=LnhpfHyuG5w"
+      ],
+      "source": "Publication terminée confirmée : Buffer : chaque destination au statut sent, avec date et mode automatique.",
+      "validationSource": "Confirmation explicite utilisateur : Lecture, image et son corrects"
+    }
+  ]
+}

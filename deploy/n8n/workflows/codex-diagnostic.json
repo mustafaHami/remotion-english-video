@@ -1,0 +1,83 @@
+{
+  "name": "Englizy — Lancer un diagnostic Codex sans vidéo",
+  "nodes": [
+    {
+      "id": "diagnostic-webhook",
+      "name": "Recevoir un diagnostic autorisé",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "REQUIRES-UNIQUE-DIAGNOSTIC-PATH",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "diagnostic-enqueue",
+      "name": "Mettre le diagnostic Codex en file",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        350,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://REQUIRES-BRIDGE-CONFIGURATION/diagnostics",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({requestId:$json.body.requestId}) }}",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "id": "codex-diagnostic-note",
+      "name": "Fonctionnement et limites",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -290
+      ],
+      "parameters": {
+        "content": "## Test court sans fabrication\nWebhook HTTPS authentifié. Le bridge répond avec un job stable ; le worker lance Codex séparément. Une question revient par le workflow de notifications. Réponse Telegram → même job → même UUID de session. Aucun épisode, média ou publication. Données d’exécution non conservées pour ne pas stocker l’en-tête du webhook.",
+        "width": 850,
+        "height": 230
+      }
+    }
+  ],
+  "connections": {
+    "Recevoir un diagnostic autorisé": {
+      "main": [
+        [
+          {
+            "node": "Mettre le diagnostic Codex en file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "none",
+    "saveExecutionProgress": false,
+    "saveManualExecutions": false
+  }
+}

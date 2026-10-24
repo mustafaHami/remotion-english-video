@@ -6,6 +6,10 @@ const {Workbook,SpreadsheetFile}=await import(sdk?pathToFileURL(sdk).href:'@oai/
 const wb=Workbook.create();
 const calendar=JSON.parse(await fs.readFile('planning/calendar.json','utf8'));
 const records=JSON.parse(await fs.readFile('planning/publications.json','utf8'));
+try {
+ const production=JSON.parse(await fs.readFile('planning/production.json','utf8'));
+ if(production.videos.some(r=>!r.external))throw new Error('Suivi de production présent : utiliser scripts/planning/maintain-tracking.py pour préserver le Journal existant.');
+} catch(error) {if(error.code!=='ENOENT')throw error;}
 const sheet=wb.worksheets.add('Calendrier');
 sheet.showGridLines=false;sheet.tabColor='#6A3FD1';
 sheet.getRange('A1:O21').format.font={name:'Arial',size:10,color:'#1E1B3A'};

@@ -1,0 +1,11 @@
+[Unit]
+Description=Keep Englizy Excel tracking current
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=1min
+AccuracySec=10s
+Unit=englizy-tracking.service
+
+[Install]
+WantedBy=timers.target

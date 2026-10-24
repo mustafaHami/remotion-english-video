@@ -1,0 +1,31 @@
+[Unit]
+Description=Englizy private n8n job bridge
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=englizy-bridge
+Group=englizy-bridge
+WorkingDirectory=/opt/englizy-automation
+ExecStart=/usr/bin/python3 -m automation.bridge --config /etc/englizy/bridge.json
+Environment=ENGLIZY_REPO=/srv/englizy-repository
+LoadCredential=n8n-token:/var/lib/englizy/secrets/n8n-bridge-token
+LoadCredential=worker-token:/var/lib/englizy/secrets/worker-bridge-token
+StateDirectory=englizy-bridge
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectSystem=strict
+ProtectHome=yes
+BindReadOnlyPaths=/root/projects/remotion-english-video:/srv/englizy-repository
+ReadOnlyPaths=/var/lib/englizy-media
+CapabilityBoundingSet=
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target

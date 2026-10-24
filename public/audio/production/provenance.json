@@ -859,5 +859,152 @@
     "rate": "-5%",
     "sha256": "11a2e3c8b85d05cc86b39d6c69c6b9e978ce3d503b3f81dc79b6f96486007369",
     "seconds": 1.5
+  },
+  "d73e02c9f9ee9aa8": {
+    "text": "Conjugue dix verbes du quotidien.",
+    "voice": "fr-FR-DeniseNeural",
+    "rate": "-5%",
+    "sha256": "3d9d97e11dbdc6b0557af3034b1bb835c79e22caa37316c2a2ec5b7f7285c5f2",
+    "seconds": 2.02
+  },
+  "43d4c2e351cbd624": {
+    "text": "I work. I worked.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "ed91b377bdb5cc7febe4319fab2927fac2557df2033c94d4510eb62bf83ba59b",
+    "seconds": 2.21
+  },
+  "755e1ced4c954282": {
+    "text": "I walk. I walked.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "9630641d0e1f0a87e09885ec864a1b9cec2b7097024003e17dd47ba215812c62",
+    "seconds": 2.17
+  },
+  "825f9b971d91ec5a": {
+    "text": "I cook. I cooked.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "c1e7d3c496d6837acd4c6b7efa688e8cc31950dc0f226004615f3ff34f06a2f6",
+    "seconds": 2.14
+  },
+  "22534eb8097b87dc": {
+    "text": "I clean. I cleaned.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "40c7bdb0dc6cee37c99d0fa320bc06f08696f92e42c7770713757a26c9da0edf",
+    "seconds": 2.13
+  },
+  "7d892bc2bf19f151": {
+    "text": "I wash. I washed.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "ea9d1802d7602f42145a5730bc02634cfffbb7e326d5329f30a70b8398c4c1e6",
+    "seconds": 2.22
+  },
+  "8180a930d54af292": {
+    "text": "I help. I helped.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "1102d84e832981fdb06512c3da1dd47092c6a911b8e6a2bc84aa363f567ba548",
+    "seconds": 2.19
+  },
+  "0a305c8ff076eb7d": {
+    "text": "I call. I called.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "6e4937526b3be01dfa5c88202e17cd78c4842484b6ca3944d5f671aa53c202e9",
+    "seconds": 2.13
+  },
+  "1e227272e9c99aca": {
+    "text": "I talk. I talked.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "dcb98d4c8a006da74a64f2d4d4519fdec4d2875f5b13e239e61b0b355398f176",
+    "seconds": 2.19
+  },
+  "d968a630396c0c58": {
+    "text": "I listen. I listened.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "b54ee4eec3793fa01a4707cfb64c553ae195f71c8b5d86266b845d78d0bbfa77",
+    "seconds": 2.26
+  },
+  "01242ede8cff7c00": {
+    "text": "I rest. I rested.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "81107d7b6cc0b884a3aa6d0837f10eabc55238ade3db0548ae46212287d65b80",
+    "seconds": 2.34
+  },
+  "38e3e7f2e276eb84": {
+    "text": "I will work.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "453538d4071856cea553cd70d92a74fbd09273ea7eed7dfa8f9283c13e18a88e",
+    "seconds": 1.19
+  },
+  "e8ff4fc15930b96b": {
+    "text": "I will walk.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "34a29e95fb53152a436ba5769ce062c467856542247e7f60c9b6853efdb9fa5c",
+    "seconds": 1.2
+  },
+  "67cd9b9c8d08e5aa": {
+    "text": "I will cook.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "1291a4295b1334ac74012ca366dfdbb8b33e220cebb55f463a2521995312fd5f",
+    "seconds": 1.18
+  },
+  "43ecda0c930d631c": {
+    "text": "I will clean.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "aa415a653c76054e8eff1f39d65a21d3543bc788385ad054245e8df585421131",
+    "seconds": 1.15
+  },
+  "9d634b64eb12b023": {
+    "text": "I will wash.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "705d536840da976e2eec1dfa108565d2e41b5debe946861fc85de09834d0074a",
+    "seconds": 1.25
+  },
+  "9124ab686dbb629c": {
+    "text": "I will help.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "b2dea59ff88153e60e89964fd80137fa76f739392c1285a5d04d457ff635fceb",
+    "seconds": 1.21
+  },
+  "4891ad8cec4bb0a4": {
+    "text": "I will call.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "d5588b95a560d6313c5acf5ecd04ccb72502986c664c146c24f57982843ad7ac",
+    "seconds": 1.19
+  },
+  "6694d931dbf6d1e0": {
+    "text": "I will talk.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "4076fe2f06aaa322251761394f049e67e1f569b30b2f730ff5b56d9aa9cf57a1",
+    "seconds": 1.18
+  },
+  "655ce46d73c06f45": {
+    "text": "I will listen.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "42fecc4cf22fba287897e3f50aebb2e98fb3ead7b0444699f11d49205a70695e",
+    "seconds": 1.19
+  },
+  "720263f68b203657": {
+    "text": "I will rest.",
+    "voice": "en-GB-SoniaNeural",
+    "rate": "-5%",
+    "sha256": "f22b791b5c0d89d4a506108c7c90dcb78b63f8744df103459d0ef3f6a7dc906e",
+    "seconds": 1.26
   }
 }
