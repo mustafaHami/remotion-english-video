@@ -87,6 +87,19 @@ class TrackingTests(unittest.TestCase):
             self.assertTrue(tracking.daily_summary(other,self.config,due)['alreadyRecorded']);other.close()
         self.assertEqual(self.store.db.execute("SELECT COUNT(*) FROM outbox WHERE id LIKE 'daily-summary:%'").fetchone()[0],2)
 
+    def test_incomplete_partage_explains_declaration_without_changing_state(self):
+        job=self.ready();self.store.validate_preview(job,1,101,101)
+        for event,text in enumerate(['/partage',f'/partage {job}',f'/partage {job} 1',f'/partage {job} 1 Instagram'],start=100):
+            update={'update_id':event,'message':{'text':text,'from':{'id':101},'chat':{'id':101,'type':'private'}}}
+            self.app.route('n8n','/telegram',update)
+            payload=json.loads(self.store.db.execute('SELECT payload FROM outbox WHERE id=?',('event:'+str(event),)).fetchone()[0])
+            self.assertIn('ne lance pas la publication',payload['text'])
+            self.assertIn('IDENTIFIANT VERSION CONFIRME',payload['text'])
+            current=self.store.get(job)
+            self.assertEqual(current['status'],'validated')
+            self.assertIsNone(current['shared_at']);self.assertIsNone(current['closed_at']);self.assertIsNone(current['approval'])
+            self.assertEqual(self.store.db.execute('SELECT COUNT(*) FROM jobs').fetchone()[0],1)
+
     def test_excel_preserves_existing_briefs_and_legacy_rows_and_is_idempotent(self):
         (self.root/'planning').mkdir()
         path=self.root/'planning/calendrier-publications.xlsx'

@@ -110,6 +110,15 @@ class Application:
                         'platforms':platforms, 'urls':urls})
                     reply('Publication terminée enregistrée : shared, tâche close. MP4 conservé 10 jours, détails de tâche 15 jours.', match[1])
                     return {'jobId':match[1], 'status':'shared'}
+                if text.strip().split(maxsplit=1)[:1] == ['/partage']:
+                    return reply(
+                        '/partage ne lance pas la publication des brouillons Buffer. '
+                        'Cette commande déclare une publication déjà terminée sur les réseaux.\n\n'
+                        'Seulement si vous avez déjà publié :\n'
+                        '/partage IDENTIFIANT VERSION CONFIRME plateformes ou liens\n\n'
+                        'Indiquez toutes les destinations terminées. '
+                        'Pour retrouver l’identifiant et la version : /encours ou /statut IDENTIFIANT. '
+                        'Aucun état modifié, aucune publication lancée.')
                 if 'callback_query' in update:
                     match = re.fullmatch(r'video:([a-f0-9]{12}):(\d{1,2})', update['callback_query'].get('data', ''))
                     if match:
@@ -161,7 +170,10 @@ class Application:
                     result = store.answer(job_id, question_id, sender['id'], chat['id'], answer)
                     reply(f'Réponse enregistrée pour {job_id}. Reprise de sa session Codex.', job_id)
                     return result
-                return reply('Commandes : /encours, /video, /statut <tâche>, /question <tâche>, /valider <tâche> <version>. Aucune publication automatique.')
+                return reply('Commandes : /encours, /video, /statut IDENTIFIANT, /question IDENTIFIANT, '
+                             '/valider IDENTIFIANT VERSION.\n'
+                             '/partage : aide pour déclarer une publication déjà terminée sur les réseaux. '
+                             'Cette commande ne publie pas les brouillons Buffer. Aucune publication automatique.')
             except ValueError as error:
                 return reply(str(error))
 
