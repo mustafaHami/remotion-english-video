@@ -4,4 +4,4 @@ Les 14 formats ont été validés par l’utilisateur le 21 octobre 2026. Le pro
 
 Options 3 et 4 publiées le 20 octobre 2026 : contenus enregistrés dans planning/calendrier-publications.xlsx et planning/publications.json. Les tests locaux de migration ne sont pas des publications.
 
-Les anciennes notes Remotion et Blender sont préservées dans docs/archive/PROJET-historique.md ; elles ne définissent plus le périmètre courant. Le déploiement et sa documentation seront finalisés sur le VPS, voir deploy/TODO-VPS.md.
+Les anciennes notes Remotion et Blender sont préservées dans docs/archive/PROJET-historique.md ; elles ne définissent plus le périmètre courant. La chaîne VPS (Telegram, n8n, Codex, Buffer, publication sur accord) est décrite dans deploy/n8n/OPERATIONS.md ; les restes dans deploy/TODO-VPS.md.

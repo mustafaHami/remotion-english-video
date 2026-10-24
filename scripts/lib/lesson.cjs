@@ -32,10 +32,24 @@ function validate(l,{assets=true}={}){
    if(path.basename(p)!==hash+'.wav')throw Error('Stale voice asset for '+c.text);}
  }
  if(n===9&&english.some((c,i)=>c.voice!==(i%2?'en-GB-RyanNeural':'en-GB-SoniaNeural')))throw Error('Dialogue requires alternating Sonia and Ryan');
+ if(l.social!==undefined)validateSocial(l.social);
  return l;
+}
+// Légendes des réseaux : métadonnées de partage, jamais rendues dans la vidéo.
+function validateSocial(s){
+ if(!s||typeof s!=='object'||Array.isArray(s)||Object.keys(s).sort().join()!=='captions,youtubeTitle')throw Error('social requires youtubeTitle and captions');
+ if(typeof s.youtubeTitle!=='string'||!s.youtubeTitle.trim()||s.youtubeTitle.length>100||/[<>]/.test(s.youtubeTitle))throw Error('YouTube title must be 1-100 characters without < or >');
+ const c=s.captions;if(!c||typeof c!=='object'||Object.keys(c).sort().join()!=='instagram,tiktok,youtube')throw Error('social.captions requires instagram, tiktok and youtube');
+ for(const [k,v]of Object.entries(c)){
+  if(typeof v!=='string'||!v.trim()||v.length>2000)throw Error('Caption '+k+' must be 1-2000 characters');
+  if(/https?:\/\/|www\./i.test(v))throw Error('Caption '+k+' must not contain links');
+  if((v.match(/#[\p{L}\p{N}_]+/gu)??[]).length>30)throw Error('Caption '+k+' has more than 30 hashtags');
+ }
+ return s;
 }
 function tokens(l){return l.option===3?l.lessonData.opposites.map(pair=>'pair:'+pair.map(normalize).sort().join('|')):spokenContent(l).map(normalize);}
 function duplicates(l,history){const used=new Map();for(const r of history.filter(r=>['published','publishing','publication_uncertain'].includes(r.status)))for(const text of r.content){const core=text.replace(/\s*\(r[eé]ponse\s*:.*?\)\s*$/i,'');const key=r.option===3?'pair:'+core.split(/\s*\/\s*|\.\s*/).filter(Boolean).map(normalize).sort().join('|'):normalize(core);used.set(key,r.id);}return tokens(l).filter(t=>used.has(t)).map(text=>({text,publication:used.get(text)}));}
 function stableStringify(value){return value&&typeof value==='object'?Array.isArray(value)?'['+value.map(stableStringify).join(',')+']':'{'+Object.keys(value).sort().map(k=>JSON.stringify(k)+':'+stableStringify(value[k])).join(',')+'}':JSON.stringify(value);}
-function fingerprint(l){return crypto.createHash('sha256').update(stableStringify(l)).digest('hex');}
-module.exports={ROOT,read,total,validate,spokenContent,tokens,duplicates,normalize,fingerprint};
+// Les légendes ne changent pas le rendu : les corriger n'invalide pas le MP4.
+function fingerprint(l){const {social,...rendered}=l;return crypto.createHash('sha256').update(stableStringify(rendered)).digest('hex');}
+module.exports={ROOT,read,total,validate,validateSocial,spokenContent,tokens,duplicates,normalize,fingerprint};

@@ -14,8 +14,13 @@ import re
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
-from automation.buffer import Reader, read_secret, BufferError, ensure_schema, draft_input
+from automation.buffer import Reader, read_secret, BufferError, ensure_schema, draft_input, episode_social
 from automation.store import Store
+
+
+def caption_note(job_id, revision, service, caption, title):
+    extra=f'\n\nTitre YouTube : {title}' if service=='youtube' else ''
+    return f'Brouillon {service} — vidéo {job_id} v{revision}\n\n{caption}{extra}'
 
 
 def prepare(job_id, revision, services):
@@ -44,21 +49,11 @@ def prepare(job_id, revision, services):
             sha=hashlib.file_digest(stream,'sha256').hexdigest()
         if sha!=json.loads(job['review'])['videoSha256']:
             raise BufferError('La vidéo a changé depuis sa validation.')
-        # Le premier épisode est déterminé, aucune nouvelle génération ni nouveau rendu.
+        # Légendes écrites par Codex dans l'épisode, aucune nouvelle génération ni nouveau rendu.
         episode_path=(ROOT/job['result']['artifacts']['episode'].removeprefix('/srv/englizy-repository/')).resolve(strict=True)
         if not episode_path.is_relative_to(ROOT/'content/episodes'):
             raise BufferError('Épisode hors périmètre.')
-        episode=json.loads(episode_path.read_text())
-        expected=['work','walk','cook','clean','wash','help','call','talk','listen','rest']
-        if (episode['option']!=1 or episode.get('lessonData',{}).get('rows') !=
-                [{'present':'I '+v,'past':'I '+v+'ed','future':'I will '+v} for v in expected]):
-            raise BufferError('Ces légendes concernent seulement le premier épisode vérifié ; préparer celles du nouvel épisode.')
-        title='10 verbes anglais : présent, passé et futur'
-        captions={
-            'instagram':'Présent, passé, futur : révisez 10 verbes anglais du quotidien.\nExemple : I work → I worked → I will work.\nÀ vous : écrivez une phrase avec « I will… » !\n#ApprendreAnglais #AnglaisFacile #LearnEnglish #EnglizyGo',
-            'tiktok':'10 verbes anglais au présent, au passé et au futur !\nI work → I worked → I will work.\nÀ vous de compléter : I will…\n#ApprendreAnglais #LearnEnglish #AnglaisFacile #EnglizyGo',
-            'youtube':'Révisez 10 verbes réguliers anglais : work, walk, cook, clean, wash, help, call, talk, listen et rest.\nPrésent, passé et futur avec will, avec prononciation.\nÀ vous : écrivez une phrase avec « I will… ».\n#Shorts #ApprendreAnglais #LearnEnglish #EnglizyGo',
-        }
+        title,captions=episode_social(json.loads(episode_path.read_text()))
         directory=Path('/var/lib/englizy-public-media');directory.mkdir(mode=0o750,exist_ok=True)
         os.chown(directory,0,grp.getgrnam('www-data').gr_gid);directory.chmod(0o750)
         row=store.db.execute('SELECT * FROM buffer_media WHERE job=? AND revision=?',(job_id,revision)).fetchone()
@@ -84,6 +79,14 @@ def prepare(job_id, revision, services):
                     raise BufferError('Brouillon existant différent ; ne pas écraser ni recréer.')
                 store.db.execute('INSERT OR IGNORE INTO buffer_drafts(job,revision,channel,service,video_hash,payload) VALUES(?,?,?,?,?,?)',
                                  (job_id,revision,c['id'],c['service'],sha,json.dumps(payload,ensure_ascii=False)))
+                # Relecture Telegram exigée par prepare-publication.py avant tout accord.
+                note={'kind':'text','text':caption_note(job_id,revision,c['service'],captions[c['service']],title)}
+                key=f"buffer-caption:{job_id}:{revision}:{c['id']}"
+                sent=store.db.execute('SELECT payload FROM outbox WHERE id=?',(key,)).fetchone()
+                if sent and json.loads(sent[0])!=note:
+                    raise BufferError('Légende déjà envoyée différente ; préparer une nouvelle version.')
+                if not sent:
+                    store.emit(key,job_id,note)
             store.audit(job_id,'buffer-drafts-prepared',{'revision':revision,'services':services,'publishEnabled':False})
         return {'prepared':True,'jobId':job_id,'revision':revision,'services':services,'publicMediaConfigured':False,'published':False}
     finally:store.close()

@@ -1,9 +1,11 @@
 // Arguments séparés fournis par le lanceur ; aucune instruction provenant du contenu.
 const path = require('node:path');
-const {ROOT, read, validate, fingerprint, duplicates} = require('../scripts/lib/lesson.cjs');
+const {ROOT, read, validate, validateSocial, fingerprint, duplicates} = require('../scripts/lib/lesson.cjs');
 const [episodePath, lessonPath, manifestPath] = process.argv.slice(2);
 try {
   const episode = validate(read(episodePath));
+  // Une vidéo issue de Telegram doit pouvoir préparer ses brouillons Buffer.
+  validateSocial(episode.social);
   const lesson = validate(read(lessonPath));
   const manifest = read(manifestPath);
   if (fingerprint(episode) !== fingerprint(lesson) || fingerprint(episode) !== manifest.contentFingerprint) {

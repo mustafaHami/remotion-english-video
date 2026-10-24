@@ -4,16 +4,16 @@ Les options portent un numéro de format, pas un numéro de version. Utiliser op
 
 ## Avant un commit
 
-1. Lire les consignes et actualiser les références distantes. Choix utilisateur confirmé le 23 octobre 2026 : travailler et livrer sur `main` par défaut, sans branches de travail permanentes. Préserver les modifications locales et résoudre les divergences sans écrasement.
+1. Lire les consignes et actualiser les références distantes. L’utilisateur est le seul développeur : `main` est la seule branche durable, sans branches de travail permanentes ni relecture de PR. Préserver les modifications locales et résoudre les divergences sans écrasement.
 2. Vérifier `git status --short`, ne pas mélanger les travaux d’autres personnes.
 3. Exécuter `npm run check`, `npm test`, `npm run verify`. Rendre et inspecter les options touchées par un changement visuel.
 4. Consulter `git diff --check` et les fichiers ajoutés. Ajouter des chemins explicites ; exclure secrets, rendus, caches et fichiers Blender.
 5. Commit court et descriptif : `feat: ...`, `fix: ...`, `docs: ...` ou `content: ...`.
-6. Push normal sur `main` si les protections le permettent. Au 23 octobre 2026, GitHub exige une PR, le contrôle `quality` et un historique linéaire : utiliser alors une branche temporaire de livraison et une PR, attendre la CI, puis fusionner par squash lorsque cette fusion est autorisée. Vérifier le contenu de `main`, supprimer la branche intégrée et synchroniser le checkout local. Ne pas contourner ces exigences.
+6. Livrer sur `main`. La protection GitHub (PR, contrôle `quality`, historique linéaire) est conservée par choix de l’utilisateur du 24 octobre 2026, donc un push direct est refusé. La PR n’est qu’un passage technique : branche temporaire, push, PR, CI `quality` verte, fusion squash, suppression de la branche locale et distante, puis `main` local synchronisé et vérifié. Une demande de livraison sur `main` vaut accord pour cette fusion ; aucune relecture n’est attendue. Ne pas contourner ni modifier la protection.
 
 Premier import dans un dépôt vide : un commit initial sur main et son push sont autorisés par l’utilisateur. Aucun force push n’est nécessaire.
 
-Une PR est requise uniquement par les protections effectives du dépôt ou par une demande explicite, et non comme convention imposant des branches permanentes. Les fichiers de production et d’historique doivent garder des identifiants stables ; ne pas committer les MP4 quotidiens. Un agent doit demander une résolution de conflit plutôt qu’écraser un classeur ou un historique.
+La PR existe uniquement parce que la protection GitHub l’impose, pas comme convention de travail : aucune branche ne doit survivre à sa fusion. Les fichiers de production et d’historique doivent garder des identifiants stables ; ne pas committer les MP4 quotidiens. Un agent doit demander une résolution de conflit plutôt qu’écraser un classeur ou un historique.
 
 ## Secrets et médias
 

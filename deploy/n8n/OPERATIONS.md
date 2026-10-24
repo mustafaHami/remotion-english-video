@@ -7,7 +7,7 @@ HTTPS, Telegram et le lancement d'un diagnostic Codex sont opérationnels. Le pa
 | Élément | Configuration observée |
 | --- | --- |
 | VPS | `srv2080063`, Ubuntu 26.04.1 LTS, x86_64, environ 16 Go RAM |
-| Dépôt | `/root/projects/remotion-english-video`, synchronisé sans écrasement depuis `origin/main` à `a9f8276` avant les changements |
+| Dépôt | `/root/projects/remotion-english-video`, sur `main` synchronisé avec `origin/main`. Monté en lecture seule dans le worker et le suivi : la branche extraite est celle qu'utilise Codex, la laisser sur `main` |
 | Outils | Node 24.22.1, npm 11.19.1, Python 3.14.4, Codex CLI 0.164.0 |
 | n8n | Conteneur `n8n-n8n-1`, image conservée `n8nio/n8n:2.44.5` |
 | Compose | `/root/services/n8n/compose.yaml` |
