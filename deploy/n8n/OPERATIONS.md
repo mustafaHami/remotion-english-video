@@ -122,6 +122,7 @@ Python standard et SQLite assurent la liaison privée ; les composants vidéo ne
 | Authentification Codex | Cache privé `/var/lib/englizy-worker/.codex`, initialisé une fois depuis le compte existant ; jamais écrasé par l'installateur |
 | Configurations | `/etc/englizy/bridge.json` et `worker.json`, root/groupe du service, `0640` |
 | Transport interne | Secrets root `0600` dans `/var/lib/englizy/secrets`, transmis par `LoadCredential` |
+| Erreurs du bridge | Chaque refus ou erreur HTTP (403, 409, 500) est écrit dans `journalctl -u englizy-bridge` : méthode, route, code, type d'exception et lignes de code. Jamais le corps, les en-têtes ni le message d'exception (texte Telegram ou jeton possibles). |
 | Projet visible | Bind mount en lecture seule vers `/srv/englizy-repository` ; quatre sous-répertoires de fabrication ouverts au worker, détaillés dans VIDEO-PREVIEW.md |
 
 Les deux services sont actifs et activés au démarrage. Ils ont `ProtectSystem=strict`, `ProtectHome=yes`, aucune capacité root et des répertoires privés `0700`. L'isolation a été vérifiée dans l'espace de montage du worker : utilisateur non root, modèles/scripts/historiques/Git en lecture seule, secret de transport n8n et base du bridge inaccessibles. Le cache Codex conserve ses propres renouvellements. Le modèle et l'effort existants ont été repris sans changement. Une connexion réussie et une invocation Codex réelle ont été constatées sous ce compte.

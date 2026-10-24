@@ -9,6 +9,8 @@ import re
 import secrets
 import uuid
 import html
+import sys
+import traceback
 from zoneinfo import ZoneInfo
 
 from .store import Store, digest, now, keyboard, describe_quota, LABELS
@@ -557,6 +559,14 @@ def handler(application, tokens):
         def log_message(self, *_):
             pass  # Aucun corps, en-tête d'authentification ou message Telegram dans les logs HTTP.
 
+        def report(self, status, error):
+            """Erreur visible dans journalctl : route, code, type et lignes de code seulement.
+            Ni message d'exception, ni corps, ni en-tête : ils peuvent contenir un texte Telegram ou un jeton."""
+            frames = traceback.extract_tb(error.__traceback__)
+            places = ' < '.join(f'{Path(f.filename).name}:{f.lineno}' for f in reversed(frames[-6 if status == 500 else -2:]))
+            print(f'{self.command} {self.path.split("?")[0][:80]} -> {status} {type(error).__name__} ({places})',
+                  file=sys.stderr, flush=True)
+
         def send(self, status, value):
             data = json.dumps(value, ensure_ascii=False).encode()
             self.send_response(status)
@@ -579,10 +589,12 @@ def handler(application, tokens):
                 return
             try:
                 data = application.video(role, match[1], int(match[2]))
-            except PermissionError:
+            except PermissionError as error:
+                self.report(403, error)
                 self.send(403, {'error': 'Accès refusé.'})
                 return
-            except (ValueError, OSError):
+            except (ValueError, OSError) as error:
+                self.report(409, error)
                 self.send(409, {'error': 'Prévisualisation absente ou modifiée.'})
                 return
             self.send_response(200)
@@ -613,11 +625,14 @@ def handler(application, tokens):
                     raise ValueError('Objet JSON requis.')
                 result = application.route(role, self.path, body)
                 self.send(200, result)
-            except PermissionError:
+            except PermissionError as error:
+                self.report(403, error)
                 self.send(403, {'error': 'Accès refusé.'})
-            except (ValueError, KeyError, TypeError):
+            except (ValueError, KeyError, TypeError) as error:
+                self.report(409, error)
                 self.send(409, {'error': 'Requête invalide, obsolète ou ambiguë.'})
-            except Exception:
+            except Exception as error:
+                self.report(500, error)
                 self.send(500, {'error': 'Erreur interne ; état conservé, vérifier avant nouvelle tentative.'})
     return Handler
 
