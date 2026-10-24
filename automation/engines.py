@@ -1,4 +1,5 @@
-"""Agents Codex et Claude : quotas, détection d'épuisement et isolement de Claude."""
+"""Agents Codex et Claude : quotas, détection d'épuisement et isolement des deux agents."""
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,21 @@ def claude_token():
         return None
     value = path.read_text().strip()
     return value or None
+
+
+@contextlib.contextmanager
+def token_pipe(token):
+    """Jeton remis par un tube lu une seule fois (CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR) :
+    absent de l'environnement, donc illisible par les commandes de l'agent via /proc/*/environ."""
+    read, write = os.pipe()
+    try:
+        os.write(write, token.encode())
+    finally:
+        os.close(write)
+    try:
+        yield read
+    finally:
+        os.close(read)
 
 
 def claude_config_dir():
@@ -138,14 +154,15 @@ def read_claude_quota(timeout=90):
     token = claude_token()
     if not token or not Path(claude_binary()).is_file():
         return unknown('claude', 'not_configured')
-    with tempfile.TemporaryDirectory() as directory:
+    with tempfile.TemporaryDirectory() as directory, token_pipe(token) as descriptor:
         env = {'PATH': os.environ.get('PATH', '/usr/bin:/bin'), 'HOME': directory, 'LANG': 'C.UTF-8',
-               'CLAUDE_CONFIG_DIR': claude_config_dir(), 'CLAUDE_CODE_OAUTH_TOKEN': token, 'DISABLE_AUTOUPDATER': '1'}
+               'CLAUDE_CONFIG_DIR': claude_config_dir(), 'CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR': str(descriptor),
+               'DISABLE_AUTOUPDATER': '1'}
         try:
             process = subprocess.run([claude_binary(), '-p', '--output-format', 'stream-json', '--verbose',
                                       '--model', 'claude-haiku-5-5', '--no-session-persistence', '--setting-sources', '',
                                       '--max-turns', '1', '--tools', ''], input='ok', capture_output=True, text=True,
-                                     timeout=timeout, cwd=directory, env=env)
+                                     timeout=timeout, cwd=directory, env=env, pass_fds=(descriptor,))
         except (OSError, subprocess.TimeoutExpired):
             return unknown('claude')
     found = None
@@ -189,7 +206,8 @@ def quota_from_events(engine, events_path):
 
 def jail(command, writable, hidden, config_dir, workdir):
     """bubblewrap : système en lecture seule, secrets et état du worker masqués,
-    écriture limitée aux dossiers de fabrication et à la configuration Claude."""
+    écriture limitée aux dossiers de fabrication et à la configuration de l'agent.
+    Seule barrière pour Codex comme pour Claude : un bubblewrap imbriqué est refusé sur ce VPS."""
     args = ['bwrap', '--die-with-parent', '--new-session', '--unshare-pid', '--unshare-ipc', '--unshare-uts',
             '--ro-bind', '/', '/', '--dev', '/dev', '--proc', '/proc', '--tmpfs', '/tmp']
     for path in hidden:
@@ -197,5 +215,8 @@ def jail(command, writable, hidden, config_dir, workdir):
             args += ['--tmpfs', str(path)]
     for path in writable:
         args += ['--bind', str(path), str(path)]
-    args += ['--bind', str(config_dir), str(config_dir), '--setenv', 'HOME', '/tmp', '--chdir', str(workdir), '--']
+    # HOME masqué : safe.directory passé en configuration de ligne de commande pour le dépôt monté.
+    args += ['--bind', str(config_dir), str(config_dir), '--setenv', 'HOME', '/tmp',
+             '--setenv', 'GIT_CONFIG_COUNT', '1', '--setenv', 'GIT_CONFIG_KEY_0', 'safe.directory',
+             '--setenv', 'GIT_CONFIG_VALUE_0', str(workdir), '--chdir', str(workdir), '--']
     return args + list(command)

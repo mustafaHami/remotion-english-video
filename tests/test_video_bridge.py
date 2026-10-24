@@ -189,5 +189,57 @@ class VideoBridgeTests(unittest.TestCase):
         store.close()
 
 
+class LastSharedTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        (self.root / 'src/options').mkdir(parents=True)
+        (self.root / 'content/episodes').mkdir(parents=True)
+        (self.root / 'src/options/catalog.json').write_text(json.dumps([{'option': 3, 'name': 'Phrasal verbs'}]))
+        (self.root / 'content/episodes/ep.json').write_text(json.dumps({'title': 'Get up, give up'}))
+        self.config = {'database': str(self.root / 'jobs.sqlite'), 'owner': 101, 'chat': 101}
+        self.app = Application(self.config)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def ask(self, event, text='/last-share-option'):
+        with patch.dict('os.environ', {'ENGLIZY_REPO': str(self.root)}):
+            self.app.route('n8n', '/telegram', {'update_id': event, 'message': {'text': text, 'from': {'id': 101},
+                                                'chat': {'id': 101, 'type': 'private'}}})
+        store = Store(self.config['database'])
+        text = store.pending()[-1]['payload']['text']
+        store.close()
+        return text
+
+    def shared(self, store, option, at, sharing, owner=101):
+        job = store.create(owner, owner, option)['jobId']
+        result = {'summary': 'Six phrasal verbs du matin.', 'artifacts': {'episode': '/srv/englizy-repository/content/episodes/ep.json'}}
+        store.db.execute("UPDATE jobs SET status='shared',kind='video',revision=2,shared_at=?,sharing=?,result=? WHERE id=?",
+                         (at, json.dumps(sharing), json.dumps(result), job))
+        return job
+
+    def test_reports_latest_shared_video_with_recorded_evidence_only(self):
+        self.assertEqual(self.ask(1), 'Aucune vidéo partagée enregistrée.')
+        store = Store(self.config['database'])
+        self.shared(store, 1, '2026-10-20T08:00:00+00:00', {'source': 'explicit-user-confirmation', 'platforms': ['TikTok']})
+        latest = self.shared(store, 3, '2026-10-24T07:55:05+00:00', {
+            'source': 'platform-receipts', 'platforms': ['instagram', 'tiktok', 'youtube'],
+            'urls': ['https://www.instagram.com/reel/abc/', 'javascript:alert(1)']})
+        self.shared(store, 5, '2026-10-25T07:00:00+00:00', {'source': 'platform-receipts'}, owner=202)
+        store.close()
+        text = self.ask(2, '/last_share_option')
+        self.assertIn('option 3 — Phrasal verbs', text)
+        self.assertIn('Titre : Get up, give up', text)
+        self.assertIn('Résumé : Six phrasal verbs du matin.', text)
+        self.assertIn('24/10/2026 à 09:55 (heure de Paris)', text)
+        self.assertIn(latest, text)
+        self.assertIn('Plateformes : Instagram, TikTok, YouTube.', text)
+        self.assertIn('reçus des plateformes via Buffer', text)
+        self.assertIn('https://www.instagram.com/reel/abc/', text)
+        self.assertNotIn('javascript', text)
+        self.assertNotIn('option 5', text)
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -77,6 +77,31 @@ class RunnerTests(unittest.TestCase):
         self.assertEqual(resumed[0], engines.claude_binary())
         self.assertEqual(resumed[resumed.index('--resume') + 1], SESSION)
 
+    def test_claude_token_passes_by_pipe_never_in_environment(self):
+        seen = {}
+        def fake_popen(command, env, pass_fds, **kwargs):
+            seen['env'], seen['token'] = env, os.read(pass_fds[0], 100).decode()
+            raise RuntimeError('stop')
+        job = {'id': 'a' * 12, 'revision': 1, 'option': 4, 'session': None, 'engine': 'claude'}
+        with tempfile.TemporaryDirectory() as directory, \
+                patch.object(runner.engines, 'claude_token', return_value='secret-token'), \
+                patch.object(runner.subprocess, 'Popen', side_effect=fake_popen):
+            with self.assertRaises(RuntimeError):
+                runner.run(job, directory, probe=True)
+        self.assertEqual(seen['token'], 'secret-token')
+        self.assertNotIn('secret-token', json.dumps(seen['env']))
+        self.assertIn('CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR', seen['env'])
+
+    def test_codex_runs_in_same_jail_with_fabrication_dirs(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'CODEX_HOME': directory}):
+            args = runner.arguments({'session': None}, Path(directory) / 'run')
+        binds = [args[i + 1] for i, a in enumerate(args[:args.index('--')]) if a == '--bind']
+        self.assertIn(str(Path(directory) / 'run'), binds)
+        self.assertIn(directory, binds)
+        self.assertTrue(all(b.startswith((str(runner.ROOT), directory)) for b in binds))
+        hidden = [args[i + 1] for i, a in enumerate(args[:args.index('--')]) if a == '--tmpfs']
+        self.assertEqual(hidden, ['/tmp', *[h for h in runner.HIDDEN if Path(h).is_dir()]])
+
     def test_claude_events_give_session_usage_and_structured_result(self):
         with tempfile.TemporaryDirectory() as directory:
             directory = Path(directory)

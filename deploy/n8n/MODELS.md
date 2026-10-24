@@ -5,7 +5,7 @@ Choix de l'utilisateur du 24 octobre 2026 : chaque vidéo est fabriquée par **C
 | Agent | Modèle et effort | Authentification |
 | --- | --- | --- |
 | Codex | réglages de la configuration privée du worker (non imposés par le dépôt) | cache `/var/lib/englizy-worker/.codex` |
-| Claude | `claude-opus-5-5`, effort `medium` (`automation/engines.py`) | jeton `claude setup-token` dans `/var/lib/englizy/secrets/claude-oauth-token`, transmis par `LoadCredential` |
+| Claude | `claude-opus-5-5`, effort `medium` (`automation/engines.py`) | jeton `claude setup-token` (abonnement, pas de facturation API) dans `/var/lib/englizy/secrets/claude-oauth-token`, transmis par `LoadCredential` puis par un tube au seul processus Claude |
 
 ## Parcours Telegram
 
@@ -38,7 +38,9 @@ Le nettoyage est repris à l'identique après un redémarrage (état durable `cl
 
 ## Sécurité de Claude
 
-Claude s'exécute sous `englizy-worker`, dans l'isolement systemd existant, et en plus dans une prison **bubblewrap** : système en lecture seule, écriture limitée aux quatre dossiers de fabrication et à sa configuration `/var/lib/englizy-worker/.claude`, `/tmp` privé ; état du worker, cache Codex, copies Telegram, configuration `/etc/englizy`, secrets, identifiants systemd et sauvegardes masqués. Mode `dontAsk` (aucune invite), outils de fabrication autorisés, `WebFetch` et `WebSearch` refusés ; les règles de `/etc/claude-code/managed-settings.json` s'appliquent aussi. Comme pour Codex, l'agent peut lire son propre jeton dans son environnement ; aucun autre secret ne lui est transmis.
+Les deux agents s'exécutent sous `englizy-worker`, dans l'isolement systemd existant, et en plus dans la même prison **bubblewrap** (`engines.jail`) : système en lecture seule, écriture limitée aux quatre dossiers de fabrication, au dossier de la tâche et à la configuration de l'agent (`.codex` ou `.claude`, jamais celle de l'autre), `/tmp` privé, espace de processus séparé ; état du worker, copies Telegram, configuration `/etc/englizy`, secrets, identifiants systemd (`/run/credentials`) et sauvegardes masqués. Le bubblewrap propre à Codex ne peut pas s'imbriquer dans cette prison (refus du noyau, vérifié) : Codex tourne donc en `danger-full-access` **à l'intérieur** de la prison, qui remplace `workspace-write` et masque en plus les jetons. Claude : mode `dontAsk`, outils de fabrication autorisés, `WebFetch` et `WebSearch` refusés ; les règles de `/etc/claude-code/managed-settings.json` s'appliquent aussi.
+
+Jeton Claude : le worker le lit dans `$CREDENTIALS_DIRECTORY` et le remet par un tube lu une seule fois (`CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR`). Il n'est dans aucun environnement de processus, aucun argument, aucun fichier de la tâche. Vérifié réellement le 24/10/2026 avec un faux jeton dans une unité reproduisant le worker : avec l'ancienne transmission par variable, une commande de l'agent lisait le jeton dans `/proc/*/environ` ; avec le tube, aucune fuite (environnements, descripteurs, journaux), et Claude s'authentifie bien (401 attendu avec le faux jeton). Codex ne voit ni le jeton Claude ni le jeton worker ; chaque agent peut seulement lire sa propre authentification (`auth.json` pour Codex, qui doit pouvoir la renouveler). Limite connue : un processus root du VPS peut toujours lire ces jetons.
 
 ## Installation sur le VPS
 
@@ -56,4 +58,4 @@ L'installateur copie l'exécutable Claude figé dans `/usr/local/lib/englizy-cla
 
 ## Tests
 
-`tests/test_models.py` simule : lecture des quotas, menu, refus d'un modèle épuisé, oubli de `/modele`, délai de lecture, épuisement avant le début, relance Oui avec reprise, Non avec nettoyage et purge, deux agents épuisés, règles d'annulation, échec puis reprise du nettoyage, entrées invalides refusées, cycle complet du worker avec redémarrage pendant le nettoyage, et retrait d'Excel. La prison bubblewrap a été vérifiée réellement sous le compte worker (écriture autorisée et refusée, secret masqué). Ces tests n'appellent aucun agent réel.
+`tests/test_models.py` simule : lecture des quotas, menu, refus d'un modèle épuisé, oubli de `/modele`, délai de lecture, épuisement avant le début, relance Oui avec reprise, Non avec nettoyage et purge, deux agents épuisés, règles d'annulation, échec puis reprise du nettoyage, entrées invalides refusées, cycle complet du worker avec redémarrage pendant le nettoyage, et retrait d'Excel. La prison a été vérifiée réellement dans une unité systemd temporaire reproduisant le worker : écriture autorisée et refusée, secrets et `/run/credentials` masqués, git utilisable, Codex lancé (limite d'usage correctement détectée), Claude authentifié par tube, rendu Remotion d'une image et d'un MP4 réussi. Ces tests n'appellent aucun agent réel.

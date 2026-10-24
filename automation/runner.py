@@ -1,5 +1,6 @@
 """Lanceur Codex ou Claude sans shell ; le mode probe ne fabrique aucun média."""
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -131,17 +132,16 @@ def validate_artifacts(result, expected_option=None):
 
 
 def arguments(job, directory, probe=False):
-    args = ['codex', '-c', 'approval_policy="never"', '-c',
-            'sandbox_mode="read-only"' if probe else 'sandbox_mode="workspace-write"']
-    if not probe:
-        args += ['-c', 'sandbox_workspace_write.network_access=true']
-    args += ['exec']
+    """Codex dans la même prison que Claude. Son propre bac à sable (bubblewrap) ne peut pas
+    s'y imbriquer : la prison remplace workspace-write et masque en plus jetons et secrets."""
+    args = ['codex', '-c', 'approval_policy="never"', '-c', 'sandbox_mode="danger-full-access"', 'exec']
     if job.get('session'):
         # UUID exact obligatoire ; jamais --last.
         uuid.UUID(job['session'])
         args += ['resume', job['session']]
     args += ['--json', '--output-schema', str(SCHEMA), '--output-last-message', str(directory / 'result.json'), '-']
-    return args
+    writable = [] if probe else [ROOT / item for item in WRITABLE if (ROOT / item).is_dir()]
+    return engines.jail(args, writable + [directory], HIDDEN, Path(os.environ.get('CODEX_HOME', Path.home() / '.codex')), ROOT)
 
 
 WRITABLE = ['content/episodes', 'public/audio/production', 'output/options', 'node_modules/.cache']
@@ -271,12 +271,18 @@ Les chemins de livrables et sessionId/questionId restent null ; tous les checks 
         expected = expected or str(uuid.uuid4())
         Path(engines.claude_config_dir()).mkdir(mode=0o700, parents=True, exist_ok=True)
         env.pop('CODEX_HOME', None)
-        env.update(CLAUDE_CONFIG_DIR=engines.claude_config_dir(), CLAUDE_CODE_OAUTH_TOKEN=token, DISABLE_AUTOUPDATER='1')
+        env.update(CLAUDE_CONFIG_DIR=engines.claude_config_dir(), DISABLE_AUTOUPDATER='1')
         command = claude_arguments(job, expected, probe)
     else:
         command = arguments(job, directory, probe)
-    with (directory / 'events.jsonl').open('w') as events, (directory / 'stderr.log').open('w') as errors:
-        process = subprocess.Popen(command, cwd=ROOT, env=env,
+    with contextlib.ExitStack() as stack:
+        descriptors = ()
+        if engine == 'claude':
+            descriptors = (stack.enter_context(engines.token_pipe(token)),)
+            env['CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR'] = str(descriptors[0])
+        events = stack.enter_context((directory / 'events.jsonl').open('w'))
+        errors = stack.enter_context((directory / 'stderr.log').open('w'))
+        process = subprocess.Popen(command, cwd=ROOT, env=env, pass_fds=descriptors,
             stdin=subprocess.PIPE, stdout=events, stderr=errors, text=True, start_new_session=True)
         (directory / 'process.json').write_text(json.dumps({'pid': process.pid, 'jobId': job['id'], 'engine': engine}))
         try:

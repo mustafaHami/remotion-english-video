@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Préflight réel dans les montages du worker et le sandbox Codex, sans épisode ni vidéo."""
+"""Préflight réel dans les montages du worker et la prison bubblewrap des agents, sans épisode ni vidéo."""
 import argparse
 import json
 import os
@@ -29,17 +29,22 @@ for name in ['src/options/option-1/content.json','planning/publications.json','.
  except OSError: continue
  else: os.close(fd);raise RuntimeError('Protected path unexpectedly writable: '+name)
 assert not os.access('/var/lib/englizy/secrets/n8n-bridge-token',os.R_OK)
-print(json.dumps({'sandboxReadAndTargetedWrite':True,'templatesHistoryGitReadOnly':True,'uid':os.getuid()}))
+assert not os.path.isdir('/run/credentials') or not os.listdir('/run/credentials')
+assert not os.path.exists('/var/lib/englizy-worker/jobs')
+print(json.dumps({'sandboxReadAndTargetedWrite':True,'templatesHistoryGitReadOnly':True,'credentialsHidden':True,'uid':os.getuid()}))
 '''
-command = ['codex', '-c', 'sandbox_mode="workspace-write"', '-c', 'sandbox_workspace_write.network_access=true', 'sandbox', '--',
-           '/srv/englizy-repository/.venv/bin/python', '-c', check]
 if args.browser:
     check += '''\nimport subprocess
 subprocess.run(['node','-e',"require('@remotion/renderer').openBrowser('chrome',{logLevel:'error'}).then(async b=>{await b.close({silent:true});console.log('browser ready')}).catch(e=>{console.error(e.message);process.exit(1)})"],check=True)
 '''
-    command[-1] = check
-launcher = 'import os,subprocess;os.chdir("/srv/englizy-repository");raise SystemExit(subprocess.run(' + repr(command) + ').returncode)'
+# Même prison que les tâches réelles, construite par le code installé.
+launcher = ('import os,subprocess,sys;sys.path.insert(0,"/opt/englizy-automation");from automation import engines,runner;'
+            'os.chdir(runner.ROOT);writable=[runner.ROOT/i for i in runner.WRITABLE if (runner.ROOT/i).is_dir()];'
+            'command=engines.jail(["/srv/englizy-repository/.venv/bin/python","-c",' + repr(check) + '],'
+            'writable,runner.HIDDEN,os.environ["CODEX_HOME"],runner.ROOT);'
+            'raise SystemExit(subprocess.run(command).returncode)')
 result = subprocess.run(['nsenter', '--target', pid, '--mount', '--setuid', str(user.pw_uid), '--setgid', str(user.pw_gid),
                          '/usr/bin/env', '-i', 'HOME=' + user.pw_dir, 'CODEX_HOME=' + user.pw_dir + '/.codex',
+                         'ENGLIZY_REPO=/srv/englizy-repository',
                          'PATH=/usr/local/bin:/usr/bin:/bin', '/usr/bin/python3', '-c', launcher], timeout=90)
 raise SystemExit(result.returncode)
