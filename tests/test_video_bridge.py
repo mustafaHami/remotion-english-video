@@ -241,5 +241,29 @@ class LastSharedTests(unittest.TestCase):
         self.assertNotIn('option 5', text)
 
 
+class BridgeErrorLogTests(unittest.TestCase):
+    def test_http_errors_are_logged_without_body_header_or_message(self):
+        import contextlib, io, threading, urllib.error, urllib.request
+        from http.server import ThreadingHTTPServer
+        from automation.bridge import handler
+        with tempfile.TemporaryDirectory() as directory:
+            app = Application({'database': str(Path(directory) / 'jobs.sqlite'), 'owner': 101, 'chat': 101})
+            server = ThreadingHTTPServer(('127.0.0.1', 0), handler(app, {'n8n': 'jeton-secret'}))
+            threading.Thread(target=server.serve_forever, daemon=True).start()
+            body = json.dumps({'update_id': 'texte-prive', 'message': {'text': 'texte-prive', 'from': {'id': 101},
+                               'chat': {'id': 101, 'type': 'private'}}}).encode()
+            request = urllib.request.Request(f'http://127.0.0.1:{server.server_port}/telegram', body,
+                                             {'Authorization': 'Bearer jeton-secret', 'Content-Type': 'application/json'})
+            logs = io.StringIO()
+            with contextlib.redirect_stderr(logs), self.assertRaises(urllib.error.HTTPError) as raised:
+                urllib.request.urlopen(request, timeout=5)
+            server.shutdown(); server.server_close()
+        self.assertEqual(raised.exception.code, 409)
+        raised.exception.close()
+        self.assertRegex(logs.getvalue(), r'POST /telegram -> 409 ValueError \(store\.py:\d+')
+        self.assertNotIn('texte-prive', logs.getvalue())
+        self.assertNotIn('jeton-secret', logs.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()
