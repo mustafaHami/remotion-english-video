@@ -99,7 +99,8 @@ class RunnerTests(unittest.TestCase):
         self.assertIn(str(Path(directory) / 'run'), binds)
         self.assertIn(directory, binds)
         self.assertTrue(all(b.startswith((str(runner.ROOT), directory)) for b in binds))
-        self.assertIn('/var/lib/englizy', args)
+        hidden = [args[i + 1] for i, a in enumerate(args[:args.index('--')]) if a == '--tmpfs']
+        self.assertEqual(hidden, ['/tmp', *[h for h in runner.HIDDEN if Path(h).is_dir()]])
 
     def test_claude_events_give_session_usage_and_structured_result(self):
         with tempfile.TemporaryDirectory() as directory:
