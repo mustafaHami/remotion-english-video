@@ -214,7 +214,13 @@ class DurableStateTests(unittest.TestCase):
         self.assertIn(SESSION, args)
         self.assertNotIn('--last', args)
         self.assertNotIn('--dangerously-bypass-approvals-and-sandbox', args)
-        self.assertIn('sandbox_mode="read-only"', args)
+        # Prison bubblewrap : seul le dossier de la tâche est inscriptible pour le diagnostic.
+        self.assertEqual(args[0], 'bwrap')
+        self.assertIn('sandbox_mode="danger-full-access"', args[args.index('--') + 1:])
+        binds = [args[i + 1] for i, a in enumerate(args[:args.index('--')]) if a == '--bind']
+        self.assertEqual(binds[0], str(Path(self.tmp.name)))
+        self.assertEqual(len(binds), 2)  # dossier de tâche + CODEX_HOME
+        self.assertIn('/run/credentials', args)
         with self.assertRaises(ValueError):
             arguments({'session': ';touch /tmp/no'}, Path(self.tmp.name))
 

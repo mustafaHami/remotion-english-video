@@ -137,6 +137,7 @@ claude_source = Path('/root/.local/bin/claude').resolve()
 claude_target = Path('/usr/local/lib/englizy-claude/claude')
 if claude_source.is_file():
     claude_target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    claude_target.parent.chmod(0o755)  # umask 077 : sans cela le worker ne peut pas exécuter Claude.
     temporary = claude_target.with_suffix('.tmp')
     shutil.copyfile(claude_source, temporary)
     temporary.chmod(0o755)

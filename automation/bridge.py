@@ -9,6 +9,7 @@ import re
 import secrets
 import uuid
 import html
+from zoneinfo import ZoneInfo
 
 from .store import Store, digest, now, keyboard, describe_quota, LABELS
 from . import media
@@ -92,6 +93,43 @@ class Application:
         return store.db.execute("""SELECT * FROM model_menus WHERE owner=? AND chat=? AND status='selected'
             AND job IS NULL ORDER BY created DESC LIMIT 1""", (self.config['owner'], self.config['chat'])).fetchone()
 
+    def last_shared(self, store, owner, chat):
+        """Dernière vidéo au statut shared : seules les preuves enregistrées sont citées, aucun lien inventé."""
+        row = store.db.execute("""SELECT id FROM jobs WHERE owner=? AND chat=? AND kind='video' AND status='shared'
+            AND shared_at IS NOT NULL ORDER BY shared_at DESC, id LIMIT 1""", (owner, chat)).fetchone()
+        if not row:
+            return 'Aucune vidéo partagée enregistrée.'
+        job = store.get(row['id'])
+        root = Path(os.environ.get('ENGLIZY_REPO', Path(__file__).resolve().parents[1]))
+        names = {item['option']: item['name'] for item in json.loads((root / 'src/options/catalog.json').read_text())}
+        lines = [f"Dernière vidéo partagée : option {job['option']} — {names.get(job['option'], 'format inconnu')}"]
+        episode = Path(((job['result'] or {}).get('artifacts') or {}).get('episode') or '').name
+        if re.fullmatch(r'[\w.-]+\.json', episode):
+            try:
+                title = json.loads((root / 'content/episodes' / episode).read_text()).get('title')
+            except (OSError, ValueError):
+                title = None
+            if isinstance(title, str) and title.strip():
+                lines.append('Titre : ' + title.strip())
+        summary = (job['result'] or {}).get('summary')
+        if isinstance(summary, str) and summary.strip():
+            lines.append('Résumé : ' + summary.strip())
+        moment = datetime.datetime.fromisoformat(job['shared_at']).astimezone(ZoneInfo('Europe/Paris'))
+        lines.append(f"Partagée le {moment:%d/%m/%Y à %H:%M} (heure de Paris) — version {job['revision']}, "
+                     f"modèle {LABELS.get(job['engine'], job['engine'])}, tâche {job['id']}.")
+        sharing = json.loads(job['sharing'] or '{}')
+        platforms = {'instagram': 'Instagram', 'tiktok': 'TikTok', 'youtube': 'YouTube'}
+        listed = [platforms.get(str(name).lower(), str(name)) for name in sharing.get('platforms') or []]
+        if listed:
+            lines.append('Plateformes : ' + ', '.join(listed) + '.')
+        source = {'platform-receipts': 'reçus des plateformes via Buffer',
+                  'explicit-user-confirmation': 'votre déclaration /partage'}.get(sharing.get('source'), 'non précisée')
+        lines.append('Preuve : ' + source + '.')
+        urls = [url for url in sharing.get('urls') or [] if isinstance(url, str) and url.startswith('https://')]
+        if urls:
+            lines += ['Liens enregistrés :', *urls]
+        return '\n'.join(lines)
+
     def options(self, store):
         self.ready_for_video(store)
         model = self.selected_model(store)
@@ -171,6 +209,8 @@ class Application:
                     return reply('Après lecture de la vidéo, des légendes et des destinations préparées : '
                                  '/publier IDENTIFIANT VERSION CONFIRME. '
                                  'Cette commande autorise une publication réelle immédiate via Buffer. Aucun accord enregistré pour cette commande incomplète.')
+                if text.strip().split('@')[0] in ['/last-share-option', '/last_share_option']:
+                    return reply(self.last_shared(store, sender['id'], chat['id']))
                 if text.strip() == '/encours':
                     return tracking.emit_summary(store, self.config, 'summary-event:' + str(event_id))
                 match = re.fullmatch(r'/valider\s+([a-f0-9]{12})\s+([1-9][0-9]*)', text.strip())
@@ -288,7 +328,7 @@ class Application:
                     result = store.answer(job_id, question_id, sender['id'], chat['id'], answer)
                     reply(f'Réponse enregistrée pour {job_id}. Reprise de la session de son agent.', job_id)
                     return result
-                return reply('Commandes : /modele puis /video, /encours, /statut IDENTIFIANT, /question IDENTIFIANT, '
+                return reply('Commandes : /modele puis /video, /encours, /last_share_option, /statut IDENTIFIANT, /question IDENTIFIANT, '
                              '/valider IDENTIFIANT VERSION, /annuler IDENTIFIANT, /relancer IDENTIFIANT oui|non.\n'
                              '/partage : aide pour déclarer une publication déjà terminée sur les réseaux. '
                              '/publier : aide pour autoriser la publication des brouillons préparés. Aucun horaire automatique de publication.')
