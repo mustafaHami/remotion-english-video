@@ -111,6 +111,26 @@ class Reader:
                 'accountId':account['id'], 'organizations':organizations, 'rateLimits':self.rate_limits}
 
 
+def episode_social(episode):
+    """Légendes écrites par Codex dans l'épisode ; mêmes règles que scripts/lib/lesson.cjs."""
+    social = episode.get('social')
+    if not isinstance(social, dict) or sorted(social) != ['captions', 'youtubeTitle']:
+        raise BufferError("Légendes absentes de l'épisode ; demander une révision qui ajoute social.")
+    title, captions = social['youtubeTitle'], social['captions']
+    if not isinstance(title, str) or not title.strip() or len(title) > 100 or re.search('[<>]', title):
+        raise BufferError('Titre YouTube requis, 100 caractères au maximum, sans < ni >.')
+    if not isinstance(captions, dict) or sorted(captions) != ['instagram', 'tiktok', 'youtube']:
+        raise BufferError('Légendes Instagram, TikTok et YouTube requises.')
+    for service, text in captions.items():
+        if not isinstance(text, str) or not text.strip() or len(text) > 2000:
+            raise BufferError('Légende vide ou trop longue : ' + service)
+        if re.search(r'https?://|www\.', text, re.I):
+            raise BufferError('Aucun lien dans une légende : ' + service)
+        if len(re.findall(r'#\w+', text)) > 30:
+            raise BufferError('Plus de 30 hashtags : ' + service)
+    return title, captions
+
+
 def draft_input(channel, text, media_url, title):
     """Prépare uniquement un brouillon ; aucun appel HTTP ici."""
     if channel.get('isDisconnected') is not False or channel.get('isLocked') is not False:

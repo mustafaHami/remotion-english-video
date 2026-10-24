@@ -10,6 +10,14 @@ Chaque `src/options/option-N/content.json` est un exemple complet à copier dans
 - `narration` : clips ordonnés avec `role`, `text`, `voice`, `start`, puis `src`, `duration`, `peaks` après préparation.
 - `verb` facultatif pour l’option 2 : be, have, can ou could.
 - `writingPaths` pour une nouvelle liste de verbes en option 1, créé par le script de tracés.
+- `social` : légendes de partage écrites par l’agent, obligatoires pour une vidéo créée depuis Telegram. `youtubeTitle` (1 à 100 caractères, sans `<` ni `>`) et `captions` avec exactement `instagram`, `tiktok` et `youtube` (1 à 2 000 caractères, aucun lien, 30 hashtags au plus). Elles ne sont pas rendues et n’entrent pas dans l’empreinte du MP4 : les corriger n’exige pas de nouveau rendu.
+
+```json
+"social": {
+  "youtubeTitle": "10 verbes anglais : présent, passé et futur",
+  "captions": {"instagram": "…", "tiktok": "…", "youtube": "… #Shorts"}
+}
+```
 
 Les nombres de lignes font partie des gabarits : dix verbes/paires, huit répliques ou trois exemples. Un changement de structure est un travail de modèle à tester, pas une modification quotidienne implicite.
 

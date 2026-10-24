@@ -1,6 +1,6 @@
 # Création vidéo et prévisualisation privée
 
-Étape autorisée après le diagnostic Telegram/Codex. Évolution des états, suivi Excel et rétention : [TRACKING.md](TRACKING.md). Buffer, les destinations sociales et les horaires de publication restent déconnectés. Aucun bouton de publication n'est exposé.
+Étape autorisée après le diagnostic Telegram/Codex. Évolution des états, suivi Excel et rétention : [TRACKING.md](TRACKING.md). Cette page décrit la prévisualisation privée ; les brouillons Buffer et la publication sur accord sont venus ensuite, voir [BUFFER.md](BUFFER.md) et [PUBLICATION.md](PUBLICATION.md). Aucun horaire de publication n'est activé et aucun bouton de publication n'est exposé.
 
 ## Parcours
 
@@ -56,6 +56,6 @@ Deux défauts supplémentaires ont été corrigés pendant ce premier parcours :
 
 Le nœud Telegram de n8n a réellement envoyé le MP4 : **message 25**, reçu durable `ready:ecee3555f0c8:2`, tâche `awaiting_review`. Copie identique à l'original, sans compression supplémentaire ; empreintes vérifiées. L'utilisateur a confirmé **« Lecture, image et son corrects »**. Cette confirmation est persistée dans l'audit avec révision et empreinte ; le champ d'approbation de publication reste vide. L'agent n'a pas effectué d'écoute subjective lui-même. Preuve privée : `/var/lib/englizy/management/first-video-result.json`.
 
-Deux workflows restent actifs : réception unique et notifications. Les quatre workflows de test restent inactifs. Limites : clic réel sur un bouton non encore constaté (ce premier choix était numérique en texte ; callbacks et double clic testés en simulation), compression d'un MP4 volumineux non vérifiée en production, Buffer et parcours de publication non configurés.
+À cette étape, deux workflows étaient actifs : réception unique et notifications (quatre depuis Buffer et la publication). Les quatre workflows de test restent inactifs. Limites : clic réel sur un bouton non encore constaté (ce premier choix était numérique en texte ; callbacks et double clic testés en simulation), compression d'un MP4 volumineux non vérifiée en production ; Buffer et la publication ont depuis été configurés.
 
 Références vérifiées : [nœud Telegram sendVideo n8n](https://docs.n8n.io/integrations/builtin/app-nodes/n8n-nodes-base.telegram/message-operations/#send-video), [Telegram Bot API sendVideo](https://core.telegram.org/bots/api#sendvideo). La limite consultée est de 50 MB ; la marge locale de 47 Mio reste inférieure.

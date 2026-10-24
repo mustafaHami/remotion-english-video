@@ -28,7 +28,7 @@
 - Une vérification TypeScript ne constitue pas une validation vidéo. Distinguer inspection d’images, décodage technique et écoute/lecture subjective réellement effectuée.
 
 ## Git et limites
-- Suivre CONTRIBUTING.md. Choix utilisateur confirmé le 23 octobre 2026 : main est la branche de travail et de livraison par défaut. Fichiers ciblés, vérifications, commit descriptif et push normal. Si GitHub impose une PR, utiliser une branche temporaire, attendre la CI, puis la supprimer après fusion autorisée ; ne pas désactiver les protections.
+- Suivre CONTRIBUTING.md. L’utilisateur est le seul développeur : main est la seule branche durable, sans relecture ni convention de PR. La protection GitHub de main (PR + contrôle `quality`) est conservée par choix du 24 octobre 2026 ; la PR n’est qu’un passage technique : branche temporaire, CI verte, fusion squash, suppression de la branche et synchronisation de main. Une demande de livraison sur main vaut accord pour cette fusion. Ne pas désactiver les protections.
 - Pas de force push ou de suppression d’historique. Aucun secret, cache, MP4 ou séquence Blender dans Git.
 - Préserver les anciens travaux locaux et les autres options lors d’une correction ciblée.
-- Déploiement, comptes sociaux et ordonnanceur : TODO sur le VPS, voir deploy/TODO-VPS.md. Ne pas les déclarer configurés sans preuve.
+- VPS : n8n, Telegram, Codex, Buffer et publication avec accord exact sont installés et prouvés dans deploy/n8n/*.md. Aucun horaire de création ou publication automatique ; restes dans deploy/TODO-VPS.md. Ne pas déclarer un élément configuré sans preuve.

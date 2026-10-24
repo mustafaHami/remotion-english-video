@@ -86,4 +86,4 @@ Lire [AGENTS.md](AGENTS.md), puis la fiche de l’option. Claude Code charge ég
 - [Validation et migration](docs/migration.md)
 - [TODO à réaliser sur le VPS](deploy/TODO-VPS.md)
 
-La publication automatique n’est pas activée. Son adaptateur, ses accès, son ordonnanceur et sa documentation seront configurés sur le VPS à la demande de l’utilisateur. Aucun secret n’est inclus dans ce dépôt.
+Sur le VPS, la chaîne Telegram → n8n → Codex → prévisualisation privée → brouillons Buffer → publication est installée ; chaque publication exige un accord explicite lié à une version précise (`/publier`). Aucun horaire de création ou de publication automatique n’est activé. Voir [deploy/n8n/OPERATIONS.md](deploy/n8n/OPERATIONS.md) et [PUBLICATION.md](deploy/n8n/PUBLICATION.md). Aucun secret n’est inclus dans ce dépôt.

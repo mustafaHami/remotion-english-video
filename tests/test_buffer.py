@@ -50,6 +50,15 @@ class BufferTests(unittest.TestCase):
         self.store.db.execute('UPDATE buffer_drafts SET payload=?',(json.dumps(self.payload|{'saveToDraft':False}),))
         with self.assertRaises(buffer.BufferError):buffer.claim_draft(self.store,self.body)
         self.assertEqual(self.store.db.execute('SELECT status FROM buffer_drafts').fetchone()[0],'prepared')
+    def test_episode_captions_are_required_and_checked(self):
+        social={'youtubeTitle':'Titre','captions':{'instagram':'A #Anglais','tiktok':'B','youtube':'C'}}
+        self.assertEqual(buffer.episode_social({'social':social}),('Titre',social['captions']))
+        bad=[None,{'captions':social['captions']},social|{'youtubeTitle':'x'*101},social|{'youtubeTitle':'<b>'},
+             social|{'captions':{'instagram':'A','tiktok':'B'}},social|{'captions':social['captions']|{'tiktok':' '}},
+             social|{'captions':social['captions']|{'youtube':'Voir https://example.com'}},
+             social|{'captions':social['captions']|{'instagram':' '.join(f'#t{i}' for i in range(31))}}]
+        for value in bad:
+            with self.assertRaises(buffer.BufferError):buffer.episode_social({'social':value} if value else {})
     def test_reader_cannot_publish_and_export_has_no_retry_or_schedule(self):
         with self.assertRaises(buffer.BufferError):buffer.Reader('fake').query('createPost')
         workflow=json.loads((Path(__file__).resolve().parents[1]/'deploy/n8n/workflows/buffer-drafts.json').read_text())
