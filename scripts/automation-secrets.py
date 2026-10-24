@@ -8,7 +8,7 @@ import tempfile
 import sys
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('name', choices=['n8n-api-key', 'github-pat', 'buffer-access-token'])
+parser.add_argument('name', choices=['n8n-api-key', 'github-pat', 'buffer-access-token', 'claude-oauth-token'])
 args = parser.parse_args()
 if os.geteuid() != 0:
     parser.error('Exécuter avec sudo, dans le terminal SSH du VPS.')

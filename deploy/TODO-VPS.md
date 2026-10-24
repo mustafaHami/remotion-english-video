@@ -11,6 +11,8 @@
 - [x] Comptes Instagram, TikTok et YouTube raccordés par Buffer ; publication réelle avec accord exact vérifiée le 24/10/2026.
 - [x] Secrets hors Git (`/var/lib/englizy/secrets`, identifiants n8n), sauvegardes cohérentes testées en isolement.
 - [x] Agent Codex installé sous `englizy-worker` avec le skill du dépôt.
+- [x] Choix Codex/Claude par `/modele`, relance après quota épuisé et nettoyage contrôlé (code et tests) : [MODELS.md](n8n/MODELS.md).
+- [ ] Claude sur le VPS : jeton `claude setup-token` à saisir par l'utilisateur, puis premier diagnostic et première vidéo réels.
 - [x] Europe/Paris, récapitulatif 09:00, verrous, journaux et notifications d’échec.
 - [x] Légendes Buffer écrites par épisode (bloc `social`), plus de texte figé.
 
@@ -20,7 +22,7 @@
 - [ ] Rotation et copie hors site des sauvegardes (elles contiennent les secrets).
 - [ ] Renouveler la clé API n8n avant le 21/12/2026.
 - [ ] Mesurer la concurrence de rendu au-delà de 2 et tester depuis un clone vierge avec versions figées (Node 24 sur le VPS, Node 22 en CI).
-- [ ] Tests réels restants : clic sur un bouton Telegram, MP4 volumineux, panne du fournisseur de voix, session Codex expirée, message reçu pendant une coupure.
+- [ ] Tests réels restants : clic sur un bouton Telegram, MP4 volumineux, panne du fournisseur de voix, session Codex ou Claude expirée, message reçu pendant une coupure.
 - [ ] Horaire quotidien de création ou de publication : non activé, uniquement sur demande explicite.
 
 Ne pas activer de publication planifiée avant que ces points applicables soient vérifiés.

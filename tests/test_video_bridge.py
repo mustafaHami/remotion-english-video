@@ -10,6 +10,7 @@ from unittest.mock import patch
 from automation.bridge import Application
 from automation.store import Store
 from automation import worker
+from model_helpers import select_model
 
 
 class VideoBridgeTests(unittest.TestCase):
@@ -28,10 +29,14 @@ class VideoBridgeTests(unittest.TestCase):
     def update(self, event, text):
         return {'update_id': event, 'message': {'text': text, 'from': {'id': 101}, 'chat': {'id': 101, 'type': 'private'}}}
 
-    def menu(self):
+    def menu(self, engine='codex'):
+        store = Store(self.config['database'])
+        select_model(self.app, store, engine)
+        store.close()
         self.app.route('n8n', '/telegram', self.update(1, '/video'))
         store = Store(self.config['database'])
-        menu = store.pending()[0]['payload']
+        menu = [e['payload'] for e in store.pending() if e['payload'].get('keyboard', {}).get('rows')
+                and e['payload']['keyboard']['rows'][0]['row']['buttons'][0]['additionalFields']['callback_data'].startswith('video:')][-1]
         store.close()
         return menu
 
@@ -153,7 +158,9 @@ class VideoBridgeTests(unittest.TestCase):
         config = {'stateDir': str(self.root / 'worker'), 'bridge': 'http://invalid.test', 'videoEnabled': True}
         def transport(url, token, path, body):
             return self.app.route('worker', path, body)
-        with patch.object(worker, 'request', side_effect=transport), patch.object(worker, 'run', side_effect=lambda j,*a,**k: self.result(j, 'needs_input')) as run:
+        available = {'engine': 'codex', 'status': 'ok', 'exhausted': False, 'windows': []}
+        with patch.object(worker, 'request', side_effect=transport), patch.object(worker, 'run', side_effect=lambda j,*a,**k: self.result(j, 'needs_input')) as run, \
+                patch.object(worker.engines, 'read_quota', return_value=available):
             worker.cycle(config, 'fake')
         self.assertFalse(run.call_args.kwargs['probe'])
         store = Store(self.config['database'])

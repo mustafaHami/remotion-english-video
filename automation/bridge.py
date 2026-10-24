@@ -1,5 +1,6 @@
 """API privée n8n/worker : SQLite durable, commandes fermées, aucun appel Telegram."""
 import argparse
+import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
@@ -9,11 +10,14 @@ import secrets
 import uuid
 import html
 
-from .store import Store, digest, now
+from .store import Store, digest, now, keyboard, describe_quota, LABELS
 from . import media
 from . import tracking
 from . import buffer
 from . import publication
+from .engines import DETAILS
+
+QUOTA_READ_SECONDS = 60
 
 
 class Application:
@@ -26,32 +30,87 @@ class Application:
         publication.ensure_schema(store)
         store.close()
 
-    def diagnostic(self, store):
+    def diagnostic(self, store, engine='codex'):
         # Le numéro interne ne sélectionne aucun format : le worker utilise uniquement --probe.
-        job = store.create(self.config['owner'], self.config['chat'], 4, 'Diagnostic sans média', kind='probe')
+        job = store.create(self.config['owner'], self.config['chat'], 4, 'Diagnostic sans média', kind='probe', engine=engine)
         store.emit('queued:' + job['jobId'], job['jobId'], {'kind': 'text', 'jobId': job['jobId'],
-            'text': f"Diagnostic {job['jobId']} en attente. Aucune vidéo ni publication ne sera créée."})
+            'text': f"Diagnostic {LABELS[engine]} {job['jobId']} en attente. Aucune vidéo ni publication ne sera créée."})
         return job
 
-    def options(self, store):
+    def ready_for_video(self, store):
         if not self.config.get('videoEnabled', False):
             raise ValueError('La création vidéo n’est pas encore activée.')
         if any(r['kind'] == 'video' for r in tracking.outstanding(store, self.config)):
             raise ValueError('Une vidéo reste à traiter avant une nouvelle création. Envoyez /encours pour la retrouver.')
+
+    def model_menu(self, store):
+        """Un choix explicite du modèle avant chaque vidéo ; les quotas sont relus par le worker."""
+        self.ready_for_video(store)
+        owner, chat = self.config['owner'], self.config['chat']
+        store.db.execute("""UPDATE model_menus SET status='superseded',updated=? WHERE owner=? AND chat=?
+            AND status IN ('reading','open','selected') AND job IS NULL""", (now(), owner, chat))
+        identifier = uuid.uuid4().hex[:12]
+        store.db.execute("INSERT INTO model_menus(id,owner,chat,status,created,updated) VALUES(?,?,?,'reading',?,?)",
+                         (identifier, owner, chat, now(), now()))
+        return identifier
+
+    def publish_model_menu(self, store, identifier, quotas):
+        store.db.execute("UPDATE model_menus SET status='open',quotas=?,updated=? WHERE id=?",
+                         (json.dumps(quotas), now(), identifier))
+        lines = [f"{i}. {LABELS[e]} ({DETAILS[e]}) — {describe_quota(quotas.get(e))}" for i, e in enumerate(LABELS, 1)]
+        store.emit('model-menu:' + identifier, None, {'kind': 'menu', 'text':
+            'Quel modèle pour la prochaine vidéo ?\n\n' + '\n'.join(lines)
+            + '\n\nTouchez un bouton ou répondez 1 ou 2, puis envoyez /video.',
+            'keyboard': keyboard(*((f'{i}. {LABELS[e]}', f'model:{identifier}:{e}') for i, e in enumerate(LABELS, 1)))})
+
+    def expire_quota_reads(self, store):
+        """Sans réponse du worker, le menu part avec des quotas inconnus (choix toujours possible)."""
+        limit = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=QUOTA_READ_SECONDS)).isoformat()
+        for row in store.db.execute("SELECT id FROM model_menus WHERE status='reading' AND created<?", (limit,)).fetchall():
+            self.publish_model_menu(store, row['id'], {e: {'engine': e, 'status': 'unknown', 'exhausted': None, 'windows': []}
+                                                       for e in LABELS})
+
+    def select_model(self, store, identifier, engine):
+        menu = store.db.execute('SELECT * FROM model_menus WHERE id=? AND owner=? AND chat=?',
+                                (identifier, self.config['owner'], self.config['chat'])).fetchone()
+        if not menu or engine not in LABELS:
+            raise ValueError('Choix inconnu ; envoyez /modele.')
+        if menu['status'] == 'selected' and menu['engine'] == engine:
+            return {'accepted': True, 'engine': engine, 'alreadySelected': True}
+        if menu['status'] != 'open':
+            raise ValueError('Ce menu n’est plus valable ; envoyez /modele.')
+        quota = json.loads(menu['quotas'] or '{}').get(engine) or {}
+        if quota.get('status') == 'not_configured':
+            raise ValueError(f'{LABELS[engine]} n’est pas encore configuré sur le VPS. Choisissez l’autre modèle.')
+        if quota.get('exhausted') is True:
+            raise ValueError(f'{LABELS[engine]} n’a plus d’usage disponible ({describe_quota(quota)}). '
+                             'Choisissez l’autre modèle ou réessayez plus tard avec /modele.')
+        store.db.execute("UPDATE model_menus SET status='selected',engine=?,updated=? WHERE id=?", (engine, now(), identifier))
+        return {'accepted': True, 'engine': engine}
+
+    def selected_model(self, store):
+        return store.db.execute("""SELECT * FROM model_menus WHERE owner=? AND chat=? AND status='selected'
+            AND job IS NULL ORDER BY created DESC LIMIT 1""", (self.config['owner'], self.config['chat'])).fetchone()
+
+    def options(self, store):
+        self.ready_for_video(store)
+        model = self.selected_model(store)
+        if not model:
+            raise ValueError('Vous avez oublié de choisir le modèle. Envoyez /modele, choisissez 1 ou 2, puis /video.')
         root = Path(os.environ.get('ENGLIZY_REPO', Path(__file__).resolve().parents[1]))
         catalog = json.loads((root / 'src/options/catalog.json').read_text())
         if {item['option'] for item in catalog} != set(range(1, 15)):
             raise ValueError('Catalogue des 14 options incomplet.')
-        choice = store.db.execute('SELECT id FROM option_choices WHERE owner=? AND chat=? AND job IS NULL ORDER BY created LIMIT 1',
-                                  (self.config['owner'], self.config['chat'])).fetchone()
+        choice = store.db.execute('''SELECT id FROM option_choices WHERE owner=? AND chat=? AND job IS NULL
+            AND model_menu=? ORDER BY created LIMIT 1''', (self.config['owner'], self.config['chat'], model['id'])).fetchone()
         identifier = choice['id'] if choice else uuid.uuid4().hex[:12]
         if not choice:
-            store.db.execute('INSERT INTO option_choices(id,owner,chat,created) VALUES(?,?,?,?)',
-                             (identifier, self.config['owner'], self.config['chat'], now()))
+            store.db.execute('INSERT INTO option_choices(id,owner,chat,created,model_menu) VALUES(?,?,?,?,?)',
+                             (identifier, self.config['owner'], self.config['chat'], now(), model['id']))
         keyboard = {'rows': [{'row': {'buttons': [
             {'text': str(item['option']), 'additionalFields': {'callback_data': f"video:{identifier}:{item['option']}"}}
             for item in catalog[i:i + 2]]}} for i in range(0, 14, 2)]}
-        text = ('Choisissez votre format :\n\n' + '\n'.join(f"{i['option']}. {i['name']}" for i in catalog)
+        text = (f"Modèle : {LABELS[model['engine']]}.\nChoisissez votre format :\n\n" + '\n'.join(f"{i['option']}. {i['name']}" for i in catalog)
                 + '\n\nTouchez un numéro ci-dessous. Le contenu sera choisi automatiquement, puis le MP4 vous sera envoyé ici. Aucune publication.'
                 + f'\nSi nécessaire : /choisir {identifier} NUMÉRO')
         return {'kind': 'menu', 'text': text, 'keyboard': keyboard}
@@ -68,10 +127,16 @@ class Application:
             return {'jobId': job['id'], 'status': job['status'], 'alreadySelected': True}
         if any(r['kind'] == 'video' for r in tracking.outstanding(store, self.config)):
             raise ValueError('Une vidéo reste à traiter. Envoyez /encours ; aucune nouvelle création lancée.')
-        job = store.create(self.config['owner'], self.config['chat'], option, 'Création directe depuis Telegram. Prévisualisation uniquement.', kind='video')
+        model = store.db.execute("SELECT * FROM model_menus WHERE id=? AND status='selected' AND job IS NULL",
+                                 (choice['model_menu'],)).fetchone() if choice['model_menu'] else None
+        if not model:
+            raise ValueError('Ce menu n’a plus de modèle valable. Envoyez /modele, puis /video.')
+        job = store.create(self.config['owner'], self.config['chat'], option, 'Création directe depuis Telegram. Prévisualisation uniquement.',
+                           kind='video', engine=model['engine'])
         store.db.execute('UPDATE option_choices SET job=? WHERE id=?', (job['jobId'], identifier))
+        store.db.execute("UPDATE model_menus SET status='consumed',job=?,updated=? WHERE id=?", (job['jobId'], now(), model['id']))
         store.emit('queued:' + job['jobId'], job['jobId'], {'kind': 'text', 'jobId': job['jobId'],
-            'text': f"Option {option} sélectionnée. Tâche {job['jobId']} en file : choix d’un contenu inédit, voix, rendu et vérifications. Vous recevrez le MP4 ici. Aucune publication."})
+            'text': f"Option {option} sélectionnée avec {LABELS[model['engine']]}. Tâche {job['jobId']} en file : choix d’un contenu inédit, voix, rendu et vérifications. Vous recevrez le MP4 ici. Aucune publication."})
         return job
 
     def ingest(self, store, update):
@@ -134,12 +199,44 @@ class Application:
                         'Pour retrouver l’identifiant et la version : /encours ou /statut IDENTIFIANT. '
                         'Aucun état modifié, aucune publication lancée.')
                 if 'callback_query' in update:
-                    match = re.fullmatch(r'video:([a-f0-9]{12}):(\d{1,2})', update['callback_query'].get('data', ''))
+                    data = update['callback_query'].get('data', '')
+                    match = re.fullmatch(r'video:([a-f0-9]{12}):(\d{1,2})', data)
                     if match:
                         return self.choose(store, match[1], int(match[2]))
+                    match = re.fullmatch(r'model:([a-f0-9]{12}):(codex|claude)', data)
+                    if match:
+                        return self.model_selected(store, reply, match[1], match[2])
+                    match = re.fullmatch(r'fallback:([a-f0-9]{12}):(yes|no)', data)
+                    if match:
+                        return self.fallback(store, reply, match[1], match[2] == 'yes', sender['id'], chat['id'])
+                    match = re.fullmatch(r'cancel:([a-f0-9]{12})', data)
+                    if match:
+                        return self.cancel(store, reply, match[1], sender['id'], chat['id'])
                     return {'accepted': True, 'action': 'unsupported_callback'}
-                if text.strip() in ['/video', '/options']:
+                command = text.strip()
+                if command in ['/modele', '/modèle', '/model']:
+                    self.model_menu(store)
+                    return reply('Lecture des quotas Codex et Claude… Le choix du modèle arrive dans quelques secondes.')
+                if command in ['/video', '/options']:
                     return reply('', payload=self.options(store))
+                match = re.fullmatch(r'/annuler\s+([a-f0-9]{12})', command)
+                if match:
+                    return self.cancel(store, reply, match[1], sender['id'], chat['id'])
+                match = re.fullmatch(r'/relancer\s+([a-f0-9]{12})\s+(oui|non)', command, re.I)
+                if match:
+                    return self.fallback(store, reply, match[1], match[2].lower() == 'oui', sender['id'], chat['id'])
+                if re.fullmatch(r'[12]', command) and not message.get('reply_to_message'):
+                    menu = store.db.execute("""SELECT id,status FROM model_menus WHERE owner=? AND chat=?
+                        AND status IN ('reading','open') ORDER BY created DESC LIMIT 1""", (sender['id'], chat['id'])).fetchone()
+                    if menu and menu['status'] == 'reading':
+                        raise ValueError('Lecture des quotas en cours : attendez le menu des modèles, puis répondez 1 ou 2.')
+                    if menu:
+                        return self.model_selected(store, reply, menu['id'], list(LABELS)[int(command) - 1])
+                if command.lower() in ['oui', 'non'] and not message.get('reply_to_message'):
+                    waiting = store.db.execute("SELECT id FROM jobs WHERE owner=? AND chat=? AND status='needs_fallback'",
+                                               (sender['id'], chat['id'])).fetchall()
+                    if len(waiting) == 1:
+                        return self.fallback(store, reply, waiting[0]['id'], command.lower() == 'oui', sender['id'], chat['id'])
                 match = re.fullmatch(r'/choisir\s+([a-f0-9]{12})\s+(\d{1,2})', text.strip())
                 if match:
                     return self.choose(store, match[1], int(match[2]))
@@ -152,16 +249,17 @@ class Application:
                         return self.choose(store, choice['id'], int(text.strip()))
                 if text.strip() == '/diagnostic':
                     return self.diagnostic(store)
+                if text.strip() == '/diagnostic claude':
+                    return self.diagnostic(store, 'claude')
                 match = re.fullmatch(r'/statut\s+([a-f0-9]{12})', text.strip())
                 if match:
                     job = store.owned(match[1], sender['id'], chat['id'])
-                    usage = store.codex_usage(job['id'])
-                    detail = ('Usage Codex : non mesuré.' if usage is None else
-                        'Usage Codex cumulé : ' + f"{usage['total_tokens']:,}".replace(',', '\u202f') +
-                        ' tokens — entrée ' + f"{usage['input_tokens']:,}".replace(',', '\u202f') +
-                        ' (dont cache ' + f"{usage['cached_input_tokens']:,}".replace(',', '\u202f') +
-                        '), sortie ' + f"{usage['output_tokens']:,}".replace(',', '\u202f') + '.')
-                    return reply(f"Tâche {job['id']} : {job['status']} (version {job['revision']}).\n{detail}", job['id'])
+                    usage = store.usage_by_engine(job['id'])
+                    number = lambda value: f'{value:,}'.replace(',', '\u202f')
+                    detail = '\n'.join(f"Usage {LABELS[e]} cumulé : {number(u['total_tokens'])} tokens — entrée {number(u['input_tokens'])} "
+                                       f"(dont cache {number(u['cached_input_tokens'])}), sortie {number(u['output_tokens'])}."
+                                       for e, u in usage.items()) or 'Usage : non mesuré.'
+                    return reply(f"Tâche {job['id']} : {job['status']} (version {job['revision']}, modèle {LABELS[job['engine']]}).\n{detail}", job['id'])
                 match = re.fullmatch(r'/question\s+([a-f0-9]{12})', text.strip())
                 if match:
                     job = store.owned(match[1], sender['id'], chat['id'])
@@ -188,10 +286,10 @@ class Application:
                 if correlation:
                     job_id, question_id, answer = correlation
                     result = store.answer(job_id, question_id, sender['id'], chat['id'], answer)
-                    reply(f'Réponse enregistrée pour {job_id}. Reprise de sa session Codex.', job_id)
+                    reply(f'Réponse enregistrée pour {job_id}. Reprise de la session de son agent.', job_id)
                     return result
-                return reply('Commandes : /encours, /video, /statut IDENTIFIANT, /question IDENTIFIANT, '
-                             '/valider IDENTIFIANT VERSION.\n'
+                return reply('Commandes : /modele puis /video, /encours, /statut IDENTIFIANT, /question IDENTIFIANT, '
+                             '/valider IDENTIFIANT VERSION, /annuler IDENTIFIANT, /relancer IDENTIFIANT oui|non.\n'
                              '/partage : aide pour déclarer une publication déjà terminée sur les réseaux. '
                              '/publier : aide pour autoriser la publication des brouillons préparés. Aucun horaire automatique de publication.')
             except ValueError as error:
@@ -201,6 +299,35 @@ class Application:
         if 'callback_query' in update:
             result = result | {'callbackId': update['callback_query']['id'], 'callbackText': 'Choix reçu.'}
         return result
+
+    def model_selected(self, store, reply, identifier, engine):
+        result = self.select_model(store, identifier, engine)
+        if not result.get('alreadySelected'):
+            reply(f'Modèle sélectionné : {LABELS[engine]} ({DETAILS[engine]}). Envoyez /video pour choisir le format.')
+        return result
+
+    def fallback(self, store, reply, job_id, accept, owner, chat):
+        result = store.fallback_decision(job_id, owner, chat, accept)
+        reply(f"Relance avec {LABELS[result['engine']]} en file : reprise à partir des fichiers déjà produits." if accept else
+              f'Relance refusée : la tâche {job_id} est annulée, tout ce qui a été produit va être supprimé.', job_id)
+        return result
+
+    def cancel(self, store, reply, job_id, owner, chat):
+        job = store.owned(job_id, owner, chat)
+        if job['status'] == 'cleanup_failed':
+            result = self.retry_cleanup(store, job)
+        else:
+            result = store.request_cancel(job_id, 'user-request', owner, chat)
+        if not result.get('alreadyCancelled'):
+            reply(f'Annulation de la tâche {job_id} enregistrée : suppression des fichiers, voix, rendu et journaux en cours.', job_id)
+        return result
+
+    def retry_cleanup(self, store, job):
+        with store.tx():
+            store.db.execute("UPDATE jobs SET status='cancelling',cleanup_error=NULL,lease=NULL,updated=? WHERE id=? AND status='cleanup_failed'",
+                             (now(), job['id']))
+            store.audit(job['id'], 'cleanup-retry')
+        return {'jobId': job['id'], 'status': 'cancelling'}
 
     def route(self, role, path, body):
         store = Store(self.config['database'])
@@ -237,6 +364,8 @@ class Application:
                     dispatch_id = body.get('dispatchId', '')
                     if not isinstance(dispatch_id, str) or not re.fullmatch('[A-Za-z0-9_-]{1,100}', dispatch_id):
                         raise ValueError('Identifiant de notification invalide.')
+                    with store.tx():
+                        self.expire_quota_reads(store)
                     entries = store.claim_notifications(claim_id=dispatch_id)
                     notifications = []
                     for entry in entries:
@@ -257,7 +386,7 @@ class Application:
                             item = json.loads(row['media'])
                             note.update(kind='video', mediaPath=f"/media/{job['id']}/{payload['revision']}",
                                         width=item['width'], height=item['height'], duration=int(item['duration']))
-                            caption = (f"Prévisualisation — option {job['option']} — tâche {job['id']}\n"
+                            caption = (f"Prévisualisation — option {job['option']} — tâche {job['id']} — {LABELS[job['engine']]}\n"
                                        + job['result']['summary'][:400]
                                        + '\nContrôle technique et inspection d’images effectués.'
                                        + ('\nÉcoute subjective non effectuée.' if not job['result']['checks']['subjectiveListening'] else '')
@@ -274,6 +403,23 @@ class Application:
                     store.mark_delivery(body['id'], 'sent', {'messageId': body['messageId'], 'chatId': body['chatId']})
                     return {'accepted': True}
             if role == 'worker':
+                if path == '/worker/quota-request':
+                    row = store.db.execute("SELECT id FROM model_menus WHERE status='reading' ORDER BY created LIMIT 1").fetchone()
+                    return {'requestId': row['id'] if row else None}
+                if path == '/worker/quotas':
+                    with store.tx():
+                        store.save_quotas(body.get('quotas'))
+                        menu = store.db.execute("SELECT id FROM model_menus WHERE id=? AND status='reading'",
+                                                (body.get('requestId'),)).fetchone()
+                        if menu:
+                            self.publish_model_menu(store, menu['id'], body['quotas'])
+                    return {'accepted': True}
+                if path == '/worker/quota-exhausted':
+                    footprint = body.get('footprint', [])
+                    return store.quota_exhausted(body['jobId'], body['lease'], body.get('started'), body.get('quotas'),
+                                                 footprint, body.get('usage'), body.get('sessionId'))
+                if path == '/worker/cleanup-done':
+                    return store.finish_cleanup(body['jobId'], body['lease'], body.get('report'), body.get('error'))
                 if path == '/worker/claim':
                     claim_id = body.get('claimId', '')
                     if not isinstance(claim_id, str) or not re.fullmatch('[a-f0-9]{32}', claim_id):
@@ -284,7 +430,16 @@ class Application:
                             job = store.get(previous['job']) if previous['job'] else None
                             if job and job['lease'] != previous['lease']:
                                 return {'job': None}
+                            if job and job['status'] == 'cancelling':
+                                return {'job': None, 'cleanup': {'jobId': job['id'], 'lease': job['lease'],
+                                        'files': store.files(job['id']), 'sessions': store.sessions(job['id'])}}
                         else:
+                            # Un nettoyage demandé passe avant toute nouvelle fabrication.
+                            cleanup = store.claim_cleanup()
+                            if cleanup:
+                                store.db.execute('INSERT INTO worker_claims(id,job,lease) VALUES(?,?,?)',
+                                                 (claim_id, cleanup['jobId'], cleanup['lease']))
+                                return {'job': None, 'cleanup': cleanup}
                             job = store.claim()
                             if job:
                                 store.db.execute('INSERT INTO worker_claims(id,job,lease) VALUES(?,?,?)',
@@ -294,7 +449,8 @@ class Application:
                         if job['kind'] != 'probe' and not self.config.get('videoEnabled', False):
                             raise ValueError('Worker limité aux diagnostics sans média.')
                         question = store.db.execute('SELECT answer FROM questions WHERE id=?', (job['question'],)).fetchone()
-                        return {'job': {k: job[k] for k in ['id', 'revision', 'option', 'kind', 'brief', 'session', 'result', 'lease']},
+                        return {'job': {k: job[k] for k in ['id', 'revision', 'option', 'kind', 'brief', 'session', 'result',
+                                                            'lease', 'engine', 'handoff']},
                                 'answer': question['answer'] if question else None}
                 if path == '/worker/result':
                     result = body['result']
@@ -310,6 +466,7 @@ class Application:
                         job = store.get(result['jobId'])
                         if job['lease'] != body['lease'] or (job['kind'] != 'probe' and not self.config.get('videoEnabled', False)):
                             raise ValueError('Traitement obsolète ou non pris en charge.')
+                        store.add_files(job['id'], body.get('footprint', []))
                         store.record(job['id'], result['revision'], result, result['sessionId'],
                                      usage=usage, invocation=body['lease'])
                         if job['kind'] == 'video' and result['status'] == 'completed':
@@ -329,8 +486,10 @@ class Application:
                         job = store.get(body['jobId'])
                         if job['lease'] != body['lease']:
                             raise ValueError('Traitement obsolète.')
+                        if job['status'] == 'generating':
+                            store.add_files(job['id'], body.get('footprint', []))
                         if body.get('usage') is not None and body.get('sessionId'):
-                            store.record_usage(job['id'], body['sessionId'], body['lease'], body['usage'])
+                            store.record_usage(job['id'], body['sessionId'], body['lease'], body['usage'], job['engine'])
                         store.fail(body['jobId'], body['lease'])
                     return {'accepted': True}
             raise PermissionError('Route non autorisée pour ce compte de service.')

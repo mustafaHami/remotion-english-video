@@ -11,6 +11,8 @@ LABELS = {
     'shared': 'publiée, tâche close', 'cancelled': 'annulée',
     'publishing': 'publication en cours', 'partially_published': 'publication partielle, suivi en cours',
     'publication_unknown': 'publication à vérifier, aucun renvoi automatique',
+    'needs_fallback': 'quota épuisé, relance avec l’autre modèle à confirmer',
+    'cancelling': 'annulation et nettoyage en cours', 'cleanup_failed': 'nettoyage à vérifier',
 }
 
 
@@ -37,6 +39,10 @@ def summary_lines(store, config):
             line += f"\nUniquement après publication terminée sur les réseaux :\n/partage {r['id']} {r['revision']} CONFIRME plateformes ou liens"
         elif r['status'] == 'needs_input':
             line += f"\n/question {r['id']}"
+        elif r['status'] == 'needs_fallback':
+            line += f"\n/relancer {r['id']} oui   ou   /relancer {r['id']} non"
+        elif r['status'] in ['failed', 'cleanup_failed']:
+            line += f"\nPour tout supprimer : /annuler {r['id']}"
         lines.append(line)
     if not rows:
         lines.append('Aucune tâche en cours ni vidéo à publier.')

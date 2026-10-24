@@ -14,7 +14,7 @@ def aged(value, days, moment):
 
 
 def purge_worker_artifacts(store, job, worker_root='/var/lib/englizy-worker'):
-    """Remove this closed job's transcripts only after checking every durable reference."""
+    """Remove this closed job's Codex and Claude transcripts only after checking every durable reference."""
     base = Path(worker_root)
     runs_root = base / 'jobs' / 'runs'
     sessions_root = base / '.codex' / 'sessions'
@@ -43,6 +43,8 @@ def purge_worker_artifacts(store, job, worker_root='/var/lib/englizy-worker'):
                         continue
                     if event.get('type') == 'thread.started':
                         ids.add(str(uuid.UUID(event['thread_id'])))
+                    elif event.get('type') == 'system' and event.get('subtype') == 'init' and event.get('session_id'):
+                        ids.add(str(uuid.UUID(event['session_id'])))
     if sessions_root.is_symlink():
         raise ValueError('Répertoire des sessions Codex lié : purge refusée.')
     sessions_root_resolved = sessions_root.resolve()
@@ -57,6 +59,16 @@ def purge_worker_artifacts(store, job, worker_root='/var/lib/englizy-worker'):
             if rollout.is_symlink() or not rollout.resolve().is_relative_to(sessions_root_resolved) or not rollout.is_file():
                 raise ValueError('Transcription Codex liée ou hors répertoire des sessions.')
             rollout.unlink()
+        claude_root = base / '.claude' / 'projects'
+        if claude_root.is_symlink():
+            raise ValueError('Répertoire des sessions Claude lié : purge refusée.')
+        for transcript in claude_root.glob(f'*/{session_id}.jsonl') if claude_root.is_dir() else ():
+            if transcript.is_symlink() or not transcript.resolve().is_relative_to(claude_root.resolve()):
+                raise ValueError('Transcription Claude liée ou hors répertoire des sessions.')
+            transcript.unlink()
+            companion = transcript.with_suffix('')
+            if companion.is_dir() and not companion.is_symlink():
+                shutil.rmtree(companion)
     if run_dir.exists():
         shutil.rmtree(run_dir)
 

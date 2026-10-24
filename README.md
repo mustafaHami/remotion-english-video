@@ -86,4 +86,4 @@ Lire [AGENTS.md](AGENTS.md), puis la fiche de l’option. Claude Code charge ég
 - [Validation et migration](docs/migration.md)
 - [TODO à réaliser sur le VPS](deploy/TODO-VPS.md)
 
-Sur le VPS, la chaîne Telegram → n8n → Codex → prévisualisation privée → brouillons Buffer → publication est installée ; chaque publication exige un accord explicite lié à une version précise (`/publier`). Aucun horaire de création ou de publication automatique n’est activé. Voir [deploy/n8n/OPERATIONS.md](deploy/n8n/OPERATIONS.md) et [PUBLICATION.md](deploy/n8n/PUBLICATION.md). Aucun secret n’est inclus dans ce dépôt.
+Sur le VPS, la chaîne Telegram → n8n → Codex ou Claude (choisi par `/modele` avant chaque `/video`, voir [MODELS.md](deploy/n8n/MODELS.md)) → prévisualisation privée → brouillons Buffer → publication est installée ; chaque publication exige un accord explicite lié à une version précise (`/publier`). Aucun horaire de création ou de publication automatique n’est activé. Voir [deploy/n8n/OPERATIONS.md](deploy/n8n/OPERATIONS.md) et [PUBLICATION.md](deploy/n8n/PUBLICATION.md). Aucun secret n’est inclus dans ce dépôt.

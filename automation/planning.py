@@ -56,6 +56,31 @@ def read_records(database, root):
         db.close()
 
 
+def cancelled_ids(database):
+    """Tâches annulées et nettoyées : elles disparaissent du suivi lisible."""
+    db = connect_as_owner(database, readonly=True)
+    try:
+        return {r[0] for r in db.execute("SELECT id FROM jobs WHERE kind='video' AND status='cancelled' AND cancel_reason IS NOT NULL")}
+    finally:
+        db.close()
+
+
+def remove_blocks(calendar, removed):
+    """Retire le bloc [Suivi] d'une tâche annulée sans toucher aux briefs voisins."""
+    for identifier in removed:
+        start, end = '[Suivi ' + identifier + ']', '[/Suivi ' + identifier + ']'
+        for row in calendar.iter_rows(min_row=6):
+            for cell in row:
+                if not isinstance(cell.value, str) or start not in cell.value:
+                    continue
+                if cell.data_type == 'f':
+                    raise ValueError('Cellule de planning contenant une formule : réconciliation requise.')
+                pattern = r'(\n\n)?' + re.escape(start) + r'.*?' + re.escape(end)
+                if not re.search(pattern, cell.value, flags=re.S):
+                    raise ValueError('Bloc de suivi incomplet dans le Calendrier.')
+                set_value(cell, re.sub(pattern, '', cell.value, flags=re.S).strip())
+
+
 def set_value(cell, value):
     if value == '':
         value = None
@@ -76,7 +101,7 @@ def journal_values(r):
             ', '.join(r['platforms']), '\n'.join(r['publicationUrls']), source]
 
 
-def update_workbook(workbook, records, previous=None):
+def update_workbook(workbook, records, previous=None, removed=()):
     journal, calendar = workbook['Journal'], workbook['Calendrier']
     if [journal.cell(5, c).value for c in range(1, 9)] != HEADERS:
         raise ValueError('En-têtes du Journal modifiés : réconciliation requise.')
@@ -96,6 +121,13 @@ def update_workbook(workbook, records, previous=None):
         expected = [None if v == '' else v for v in journal_values(r)]
         if observed != expected:
             raise ValueError('Ligne de suivi modifiée dans Excel : réconciliation requise pour ' + r['id'])
+    if removed:
+        rows = sorted(((ids.pop(i), i) for i in list(removed) if i in ids), reverse=True)
+        for row, _ in rows:
+            journal.delete_rows(row)
+        for identifier in list(ids):
+            ids[identifier] -= sum(1 for row, _ in rows if row < ids[identifier])
+        remove_blocks(calendar, removed)
     for r in records:
         row = ids.get(r['id'])
         if row is None:
@@ -147,11 +179,12 @@ def sync(database, root, backup_dir):
     before = workbook_path.read_bytes()
     wb = load_workbook(workbook_path)
     records = read_records(database, root)
-    # Conserver les fiches minimales après purge des détails en base.
+    # Conserver les fiches minimales après purge des détails en base, sauf les tâches annulées.
     old = json.loads(index_path.read_text())['videos'] if index_path.exists() else []
+    cancelled = cancelled_ids(database)
     current_ids = {r['id'] for r in records}
-    records += [r for r in old if r['id'] not in current_ids and not r.get('external')]
-    update_workbook(wb, records, previous=old)
+    records += [r for r in old if r['id'] not in current_ids and not r.get('external') and r['id'] not in cancelled]
+    update_workbook(wb, records, previous=old, removed={r['id'] for r in old if r['id'] in cancelled and not r.get('external')})
     # Le Journal peut aussi contenir des productions humaines non gérées par le bot.
     indexed = {r['id'] for r in records}
     for row in wb['Journal'].iter_rows(min_row=6, max_col=8, values_only=True):
