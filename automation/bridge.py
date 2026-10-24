@@ -12,6 +12,7 @@ import html
 from .store import Store, digest, now
 from . import media
 from . import tracking
+from . import buffer
 
 
 class Application:
@@ -20,6 +21,7 @@ class Application:
         if any(type(config[k]) is not int or config[k] <= 0 for k in ['owner', 'chat']):
             raise ValueError('Identité privée confirmée requise.')
         store = Store(config['database'])
+        buffer.ensure_schema(store)
         store.close()
 
     def diagnostic(self, store):
@@ -172,6 +174,10 @@ class Application:
         store = Store(self.config['database'])
         try:
             if role == 'n8n':
+                if path == '/buffer/drafts/claim':
+                    return buffer.claim_draft(store, body)
+                if path == '/buffer/drafts/receipt':
+                    return buffer.record_draft(store, body)
                 if path == '/daily-summary':
                     return tracking.daily_summary(store, self.config)
                 if path == '/telegram':

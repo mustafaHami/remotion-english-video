@@ -11,7 +11,7 @@ def aged(value, days, moment):
     return bool(value) and moment >= datetime.datetime.fromisoformat(value) + datetime.timedelta(days=days)
 
 
-def apply(store, root, spool, backup_dir, moment=None):
+def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/englizy-public-media'):
     moment = moment or datetime.datetime.now(datetime.timezone.utc)
     root, spool = Path(root).resolve(), Path(spool).resolve()
     candidates = [dict(r) for r in store.db.execute("SELECT * FROM jobs WHERE purged_at IS NULL AND closed_at IS NOT NULL")]
@@ -48,6 +48,13 @@ def apply(store, root, spool, backup_dir, moment=None):
             if path.resolve().parent.parent != root / 'output/options' / f"option-{j['option']}":
                 raise ValueError('MP4 hors dossier de réalisation.')
             files = [(path, media['originalSha256'], root / 'output/options'), (preview, media['sha256'], spool)]
+            if store.db.execute("SELECT 1 FROM sqlite_master WHERE name='buffer_media'").fetchone():
+                public_root = Path(public_media)
+                for item in store.db.execute('SELECT * FROM buffer_media WHERE job=?',(j['id'],)):
+                    if (public_root.is_symlink() or not re.fullmatch('[a-f0-9]{64}[.]mp4',item['filename'])
+                            or item['sha256'] != media['originalSha256']):
+                        raise ValueError('Copie Buffer non reconnue ; purge refusée.')
+                    files.append((public_root/item['filename'],item['sha256'],public_root.resolve()))
             for file, expected, allowed in files:
                 if file.is_symlink() or not file.resolve().is_relative_to(allowed):
                     raise ValueError('Lien ou chemin de suppression interdit.')
@@ -75,6 +82,9 @@ def apply(store, root, spool, backup_dir, moment=None):
                 store.db.execute('DELETE FROM revisions WHERE job=?', (j['id'],))
                 store.db.execute('DELETE FROM preview_media WHERE job=?', (j['id'],))
                 store.db.execute('DELETE FROM audit WHERE job=?', (j['id'],))
+                if store.db.execute("SELECT 1 FROM sqlite_master WHERE name='buffer_drafts'").fetchone():
+                    store.db.execute("UPDATE buffer_drafts SET payload='{}',response=NULL WHERE job=?",(j['id'],))
+                    store.db.execute('DELETE FROM buffer_media WHERE job=?',(j['id'],))
                 store.db.execute('UPDATE outbox SET payload=? WHERE job=?',
                                  (json.dumps({'kind':'tombstone','jobId':j['id']}), j['id']))
                 store.db.execute("UPDATE jobs SET result=NULL,session=NULL,question=NULL,brief='',snapshot=NULL,approval=NULL,purged_at=? WHERE id=?",

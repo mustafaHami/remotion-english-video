@@ -1,6 +1,6 @@
 # TODO à réaliser sur le VPS
 
-Cette liste décrit la préparation initiale. L’intégration effective sur le VPS, ses preuves et ses limites sont maintenant décrites dans [n8n/OPERATIONS.md](n8n/OPERATIONS.md) et [n8n/VIDEO-PREVIEW.md](n8n/VIDEO-PREVIEW.md) : HTTPS, Telegram, Codex et première prévisualisation privée vérifiés. Buffer et la publication restent à réaliser.
+Cette liste décrit la préparation initiale. L’intégration effective sur le VPS, ses preuves et ses limites sont maintenant décrites dans [n8n/OPERATIONS.md](n8n/OPERATIONS.md) et [n8n/VIDEO-PREVIEW.md](n8n/VIDEO-PREVIEW.md) : HTTPS, Telegram, Codex et première prévisualisation privée vérifiés. Buffer est désormais connecté et trois brouillons sont vérifiés, voir [n8n/BUFFER.md](n8n/BUFFER.md). La publication réelle reste à intégrer et exige un accord précis.
 
 - [ ] Relever l’OS, l’architecture, CPU, RAM, disque, répertoire de déploiement et utilisateur d’exécution.
 - [ ] Choisir installation native ou Docker ; tester un rendu court et mesurer la concurrence adaptée (commencer à 2).

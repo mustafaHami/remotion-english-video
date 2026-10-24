@@ -17,5 +17,6 @@ BindReadOnlyPaths=/root/projects/remotion-english-video:/srv/englizy-repository
 BindPaths=/root/projects/remotion-english-video/planning:/srv/englizy-repository/planning
 BindPaths=/root/projects/remotion-english-video/output/options:/srv/englizy-repository/output/options
 ReadWritePaths=/var/lib/englizy-bridge /var/lib/englizy-media /var/lib/englizy-tracking
+ReadWritePaths=-/var/lib/englizy-public-media
 InaccessiblePaths=/var/lib/englizy/secrets /var/lib/englizy-worker/.codex
 CapabilityBoundingSet=CAP_DAC_OVERRIDE CAP_DAC_READ_SEARCH CAP_SETUID CAP_CHOWN CAP_FOWNER
