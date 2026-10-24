@@ -45,6 +45,38 @@ def digest(value):
                                     separators=(',', ':')).encode()).hexdigest()
 
 
+CANCELLABLE = ['queued', 'needs_input', 'needs_fallback', 'failed', 'awaiting_preview', 'pending_validation', 'cleanup_failed']
+LABELS = {'codex': 'Codex', 'claude': 'Claude'}
+REASONS = {'quota-before-start': 'quota épuisé avant le début', 'quota-all': 'quotas Codex et Claude épuisés',
+           'fallback-declined': 'relance refusée', 'user-request': 'demande explicite'}
+
+
+def keyboard(*buttons):
+    return {'rows': [{'row': {'buttons': [{'text': text, 'additionalFields': {'callback_data': data}}
+                                          for text, data in buttons]}}]}
+
+
+def cancel_keyboard(job_id):
+    return keyboard(('Annuler et tout supprimer', f'cancel:{job_id}'))
+
+
+def describe_quota(snapshot):
+    if not snapshot or snapshot.get('status') == 'not_configured':
+        return 'non configuré'
+    if not snapshot.get('windows'):
+        return 'quota inconnu'
+    text = ' · '.join(f"{w['label']} : {w['remaining']} % restant" for w in snapshot['windows'])
+    return text + (' — épuisé' if snapshot.get('exhausted') else '')
+
+
+def valid_quota(engine, value):
+    return (isinstance(value, dict) and value.get('engine') == engine
+            and value.get('status') in ['ok', 'unknown', 'not_configured'] and value.get('exhausted') in [True, False, None]
+            and isinstance(value.get('windows'), list) and len(value['windows']) <= 4
+            and all(isinstance(w, dict) and isinstance(w.get('label'), str) and len(w['label']) <= 12
+                    and type(w.get('remaining')) is int and 0 <= w['remaining'] <= 100 for w in value['windows']))
+
+
 def atomic(method):
     @wraps(method)
     def wrapped(self, *args, **kwargs):
@@ -102,6 +134,12 @@ class Store:
             output_tokens INTEGER NOT NULL, reasoning_output_tokens INTEGER NOT NULL,
             total_tokens INTEGER NOT NULL, updated TEXT NOT NULL,
             PRIMARY KEY(job,session,invocation));
+          CREATE TABLE IF NOT EXISTS model_menus (
+            id TEXT PRIMARY KEY, owner INTEGER NOT NULL, chat INTEGER NOT NULL, status TEXT NOT NULL,
+            engine TEXT, quotas TEXT, job TEXT REFERENCES jobs(id), created TEXT NOT NULL, updated TEXT NOT NULL);
+          CREATE TABLE IF NOT EXISTS job_files (
+            job TEXT NOT NULL REFERENCES jobs(id), path TEXT NOT NULL, PRIMARY KEY(job, path));
+          CREATE TABLE IF NOT EXISTS quota_snapshots (engine TEXT PRIMARY KEY, data TEXT NOT NULL, at TEXT NOT NULL);
         ''')
         usage_columns = {r[1] for r in self.db.execute('PRAGMA table_info(codex_usage)')}
         if usage_columns and 'invocation' not in usage_columns:
@@ -125,9 +163,15 @@ class Store:
         columns = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
         for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT'),
                                  ('validated_at', 'TEXT'), ('shared_at', 'TEXT'), ('closed_at', 'TEXT'),
-                                 ('review', 'TEXT'), ('sharing', 'TEXT'), ('media_deleted_at', 'TEXT'), ('purged_at', 'TEXT')]:
+                                 ('review', 'TEXT'), ('sharing', 'TEXT'), ('media_deleted_at', 'TEXT'), ('purged_at', 'TEXT'),
+                                 ('engine', "TEXT NOT NULL DEFAULT 'codex'"), ('handoff', 'TEXT'), ('fallback', 'TEXT'),
+                                 ('cancel_reason', 'TEXT'), ('cleanup_error', 'TEXT')]:
             if name not in columns:
                 self.db.execute(f'ALTER TABLE jobs ADD COLUMN {name} {definition}')
+        if 'engine' not in {r[1] for r in self.db.execute('PRAGMA table_info(codex_usage)')}:
+            self.db.execute("ALTER TABLE codex_usage ADD COLUMN engine TEXT NOT NULL DEFAULT 'codex'")
+        if 'model_menu' not in {r[1] for r in self.db.execute('PRAGMA table_info(option_choices)')}:
+            self.db.execute('ALTER TABLE option_choices ADD COLUMN model_menu TEXT')
         if 'lease' not in {r[1] for r in self.db.execute('PRAGMA table_info(worker_claims)')}:
             self.db.execute('ALTER TABLE worker_claims ADD COLUMN lease TEXT')
         self.db.execute("UPDATE jobs SET status='pending_validation' WHERE status='awaiting_review'")
@@ -154,7 +198,7 @@ class Store:
         if row is None:
             raise ValueError('Tâche inconnue.')
         result = dict(row)
-        for key in ['result', 'snapshot', 'approval']:
+        for key in ['result', 'snapshot', 'approval', 'handoff', 'fallback']:
             result[key] = json.loads(result[key]) if result[key] else None
         return result
 
@@ -226,18 +270,20 @@ class Store:
             return response
 
     @atomic
-    def create(self, owner, chat, option, brief='', kind='video'):
+    def create(self, owner, chat, option, brief='', kind='video', engine='codex'):
         if type(owner) is not int or type(chat) is not int or owner <= 0 or chat <= 0:
             raise ValueError('Compte et conversation privée numériques requis.')
         if type(option) is not int or not 1 <= option <= 14:
             raise ValueError('Choisir une option entière entre 1 et 14.')
         if kind not in ['video', 'probe']:
             raise ValueError('Type de tâche inconnu.')
+        if engine not in ['codex', 'claude']:
+            raise ValueError('Agent inconnu.')
         job_id = uuid.uuid4().hex[:12]
-        self.db.execute('''INSERT INTO jobs(id,revision,owner,chat,option,status,brief,updated,kind)
-                           VALUES(?,1,?,?,?,'queued',?,?,?)''', (job_id, owner, chat, option, brief, now(), kind))
+        self.db.execute('''INSERT INTO jobs(id,revision,owner,chat,option,status,brief,updated,kind,engine)
+                           VALUES(?,1,?,?,?,'queued',?,?,?,?)''', (job_id, owner, chat, option, brief, now(), kind, engine))
         self.db.execute('INSERT INTO revisions(job,revision) VALUES(?,1)', (job_id,))
-        self.audit(job_id, 'created')
+        self.audit(job_id, 'created', {'engine': engine})
         return {'jobId': job_id, 'revision': 1, 'status': 'queued'}
 
     def claim(self):
@@ -261,12 +307,12 @@ class Store:
             if result['jobId'] != job_id or result['revision'] != revision:
                 raise ValueError('Résultat rattaché à une autre tâche.')
             if not actual_session or result['sessionId'] != actual_session:
-                raise ValueError('Session Codex non vérifiée.')
+                raise ValueError('Session de l’agent non vérifiée.')
             uuid.UUID(actual_session)
             if job['session'] and job['session'] != actual_session:
                 raise ValueError('Le résultat a changé de session.')
             if usage is not None:
-                self.record_usage(job_id, actual_session, invocation or f'r{revision}', usage)
+                self.record_usage(job_id, actual_session, invocation or f'r{revision}', usage, job['engine'])
             status = result['status']
             question_id = None
             if status == 'needs_input':
@@ -284,7 +330,7 @@ class Store:
                     status = 'awaiting_preview'
                     self.emit(f'ready:{job_id}:{revision}', job_id, {'kind': 'ready', 'jobId': job_id, 'revision': revision})
             elif status != 'failed':
-                raise ValueError('Statut Codex inconnu.')
+                raise ValueError('Statut de l’agent inconnu.')
             if status == 'failed':
                 self.emit(f'failed:{job_id}:{revision}', job_id, {'kind': 'text', 'text': 'La tâche a échoué. Diagnostic conservé sur le VPS.', 'jobId': job_id})
             self.db.execute('UPDATE jobs SET status=?,session=?,question=?,result=?,updated=? WHERE id=?',
@@ -295,33 +341,41 @@ class Store:
                 self.db.execute('UPDATE jobs SET closed_at=? WHERE id=?', (now(), job_id))
             self.audit(job_id, status)
 
+    def usage_by_engine(self, job_id):
+        totals = {}
+        for row in self.db.execute('''SELECT engine,input_tokens,cached_input_tokens,output_tokens,
+                    reasoning_output_tokens,total_tokens FROM codex_usage WHERE job=?''', (job_id,)):
+            item = totals.setdefault(row['engine'], dict.fromkeys(
+                ('input_tokens','cached_input_tokens','output_tokens','reasoning_output_tokens','total_tokens'), 0))
+            for key in item:
+                item[key] += row[key]
+        return totals
+
     def codex_usage(self, job_id):
-        rows = self.db.execute('''SELECT input_tokens,cached_input_tokens,output_tokens,
-                    reasoning_output_tokens,total_tokens FROM codex_usage WHERE job=?''', (job_id,)).fetchall()
-        if not rows:
-            return None
-        return {key: sum(row[key] for row in rows) for key in
-                ('input_tokens','cached_input_tokens','output_tokens','reasoning_output_tokens','total_tokens')}
+        return self.usage_by_engine(job_id).get('codex')
 
     @atomic
-    def record_usage(self, job_id, session, invocation, usage):
+    def record_usage(self, job_id, session, invocation, usage, engine='codex'):
         names = ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens')
         if (not isinstance(usage, dict) or any(type(usage.get(k)) is not int or usage[k] < 0 for k in names)
                 or usage['cached_input_tokens'] > usage['input_tokens']
                 or usage.get('total_tokens') != usage['input_tokens'] + usage['output_tokens']):
-            raise ValueError('Compteurs Codex invalides.')
+            raise ValueError('Compteurs d’usage invalides.')
         uuid.UUID(session)
+        if engine not in ['codex', 'claude']:
+            raise ValueError('Agent inconnu.')
         if not isinstance(invocation, str) or not invocation or len(invocation) > 128:
-            raise ValueError('Identifiant d’invocation Codex invalide.')
+            raise ValueError('Identifiant d’invocation invalide.')
         previous = self.db.execute('''SELECT total_tokens FROM codex_usage
             WHERE job=? AND session=? AND invocation=?''', (job_id, session, invocation)).fetchone()
         if previous is None or usage['total_tokens'] > previous['total_tokens']:
-            self.db.execute('''INSERT INTO codex_usage VALUES(?,?,?,?,?,?,?,?,?)
+            self.db.execute('''INSERT INTO codex_usage(job,session,invocation,input_tokens,cached_input_tokens,
+                output_tokens,reasoning_output_tokens,total_tokens,updated,engine) VALUES(?,?,?,?,?,?,?,?,?,?)
                 ON CONFLICT(job,session,invocation) DO UPDATE SET input_tokens=excluded.input_tokens,
                 cached_input_tokens=excluded.cached_input_tokens,output_tokens=excluded.output_tokens,
                 reasoning_output_tokens=excluded.reasoning_output_tokens,
                 total_tokens=excluded.total_tokens,updated=excluded.updated''',
-                (job_id, session, invocation, *(usage[k] for k in names), usage['total_tokens'], now()))
+                (job_id, session, invocation, *(usage[k] for k in names), usage['total_tokens'], now(), engine))
 
     @atomic
     def answer(self, job_id, question_id, owner, chat, text):
@@ -454,5 +508,163 @@ class Store:
                 raise ValueError('Traitement obsolète.')
             self.db.execute("UPDATE jobs SET status='failed',updated=? WHERE id=?", (now(), job_id))
             self.audit(job_id, 'worker-failed')
-            self.emit(f"failed:{job_id}:{job['revision']}", job_id, {'kind': 'text', 'jobId': job_id,
-                'text': 'La tâche Codex a été interrompue ou a échoué. Les journaux et éventuels fichiers restent conservés ; aucune publication.'})
+            text = f"La tâche {job_id} a été interrompue ou a échoué. Journaux et fichiers conservés pour diagnostic ; aucune publication."
+            payload = {'kind': 'text', 'jobId': job_id, 'text': text}
+            if job['kind'] == 'video':
+                payload = {'kind': 'menu', 'jobId': job_id, 'text': text + f'\nPour tout supprimer : /annuler {job_id}',
+                           'keyboard': cancel_keyboard(job_id)}
+            self.emit(f"failed:{job_id}:{job['revision']}", job_id, payload)
+
+    @atomic
+    def add_files(self, job_id, entries):
+        from .cleanup import valid_entry
+        if not isinstance(entries, list) or len(entries) > 5000 or not all(valid_entry(e) for e in entries):
+            raise ValueError('Empreinte de fichiers invalide.')
+        for entry in entries:
+            self.db.execute('INSERT OR IGNORE INTO job_files VALUES(?,?)', (job_id, entry))
+
+    def files(self, job_id):
+        return [r[0] for r in self.db.execute('SELECT path FROM job_files WHERE job=? ORDER BY path', (job_id,))]
+
+    def sessions(self, job_id):
+        found = {r[0] for r in self.db.execute('SELECT session FROM codex_usage WHERE job=?', (job_id,))}
+        found |= {r[0] for r in self.db.execute('SELECT session FROM questions WHERE job=?', (job_id,))}
+        session = self.get(job_id)['session']
+        return sorted(s for s in found | {session} if s)
+
+    @atomic
+    def save_quotas(self, quotas):
+        if not isinstance(quotas, dict) or not set(quotas) <= set(LABELS) or not all(valid_quota(k, v) for k, v in quotas.items()):
+            raise ValueError('Relevé de quotas invalide.')
+        for engine, value in quotas.items():
+            self.db.execute('INSERT OR REPLACE INTO quota_snapshots VALUES(?,?,?)', (engine, json.dumps(value), now()))
+
+    def quota(self, engine):
+        row = self.db.execute('SELECT data FROM quota_snapshots WHERE engine=?', (engine,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    @atomic
+    def request_cancel(self, job_id, reason, owner=None, chat=None, lease=None):
+        """Passe la tâche en nettoyage ; seul le worker supprime ensuite les fichiers."""
+        job = self.get(job_id) if owner is None else self.owned(job_id, owner, chat)
+        if job['status'] in ['cancelling', 'cancelled']:
+            return {'jobId': job_id, 'status': job['status'], 'alreadyCancelled': True}
+        allowed = CANCELLABLE + (['generating'] if lease is not None and lease == job['lease'] else [])
+        if job['kind'] != 'video' or job['status'] not in allowed:
+            raise ValueError('Annulation impossible maintenant : attendez la fin de la création en cours '
+                             'ou vérifiez la tâche avec /statut ' + job_id + '.')
+        if reason not in REASONS:
+            raise ValueError('Motif d’annulation inconnu.')
+        self.db.execute("""UPDATE jobs SET status='cancelling',cancel_reason=?,cleanup_error=NULL,lease=NULL,
+            fallback=NULL,question=NULL,updated=? WHERE id=?""", (reason, now(), job_id))
+        # Les messages pas encore partis pour cette tâche ne doivent plus l'être.
+        self.db.execute("UPDATE outbox SET status='superseded' WHERE job=? AND status='pending'", (job_id,))
+        self.audit(job_id, 'cancel-requested', {'reason': reason, 'previous': job['status']})
+        return {'jobId': job_id, 'status': 'cancelling'}
+
+    def claim_cleanup(self):
+        with self.tx():
+            row = self.db.execute("SELECT id FROM jobs WHERE status='cancelling' ORDER BY updated,id LIMIT 1").fetchone()
+            if row is None:
+                return None
+            lease = uuid.uuid4().hex
+            self.db.execute('UPDATE jobs SET lease=?,updated=? WHERE id=?', (lease, now(), row[0]))
+            return {'jobId': row[0], 'lease': lease, 'files': self.files(row[0]), 'sessions': self.sessions(row[0])}
+
+    @atomic
+    def finish_cleanup(self, job_id, lease, report, error):
+        job = self.get(job_id)
+        if job['status'] in ['cancelled', 'cleanup_failed'] and job['lease'] == lease:
+            return {'jobId': job_id, 'status': job['status']}
+        if job['status'] != 'cancelling' or job['lease'] != lease:
+            raise ValueError('Nettoyage obsolète.')
+        if error is not None:
+            if not isinstance(error, str):
+                raise ValueError('Erreur de nettoyage invalide.')
+            self.db.execute("UPDATE jobs SET status='cleanup_failed',cleanup_error=?,updated=? WHERE id=?",
+                            (error[:500], now(), job_id))
+            self.audit(job_id, 'cleanup-failed', {'error': error[:500]})
+            self.emit(f'cleanup-failed:{job_id}:{uuid.uuid4().hex[:8]}', None, {'kind': 'menu',
+                'text': f'Le nettoyage de la tâche {job_id} a échoué ; rien n’a été relancé automatiquement. '
+                        f'Diagnostic conservé sur le VPS. Pour réessayer : /annuler {job_id}', 'keyboard': cancel_keyboard(job_id)})
+            return {'jobId': job_id, 'status': 'cleanup_failed'}
+        if (not isinstance(report, dict) or not isinstance(report.get('deleted'), list)
+                or not isinstance(report.get('skipped'), list)):
+            raise ValueError('Rapport de nettoyage invalide.')
+        at = now()
+        for table in ['questions', 'revisions', 'preview_media', 'job_files', 'codex_usage', 'audit']:
+            self.db.execute(f'DELETE FROM {table} WHERE job=?', (job_id,))
+        self.db.execute("UPDATE outbox SET payload=? WHERE job=? AND status='sent'",
+                        (json.dumps({'kind': 'tombstone', 'jobId': job_id}), job_id))
+        self.db.execute("""UPDATE jobs SET status='cancelled',result=NULL,session=NULL,question=NULL,brief='',
+            snapshot=NULL,approval=NULL,review=NULL,handoff=NULL,fallback=NULL,cleanup_error=NULL,
+            closed_at=?,purged_at=?,updated=? WHERE id=?""", (at, at, at, job_id))
+        # Seule trace conservée : identifiant, motif et compteurs, sans contenu.
+        self.audit(job_id, 'cancelled-cleaned', {'reason': job['cancel_reason'], 'deleted': len(report['deleted']),
+                                                  'skipped': len(report['skipped'])})
+        text = (f"Tâche {job_id} annulée ({REASONS.get(job['cancel_reason'], 'annulation')}). "
+                f"{len(report['deleted'])} élément(s) supprimé(s) : fichiers, voix, rendu, journaux et sessions.")
+        if report['skipped']:
+            text += f" {len(report['skipped'])} élément(s) conservé(s) par sécurité (partagé ou non créé par la tâche)."
+        self.emit(f'cancelled:{job_id}', None, {'kind': 'text', 'text': text})
+        return {'jobId': job_id, 'status': 'cancelled'}
+
+    @atomic
+    def quota_exhausted(self, job_id, lease, started, quotas, footprint, usage=None, session=None):
+        job = self.get(job_id)
+        handled = self.db.execute("SELECT 1 FROM audit WHERE job=? AND action IN ('quota-exhausted','cancel-requested') LIMIT 1",
+                                  (job_id,)).fetchone()
+        # Un renvoi après redémarrage du worker ne doit ni échouer en boucle ni rien changer.
+        if job['status'] in ['needs_fallback', 'cancelling', 'cancelled', 'cleanup_failed'] and (handled or job['purged_at']):
+            return {'jobId': job_id, 'status': job['status'], 'alreadyRecorded': True}
+        if job['lease'] != lease:
+            raise ValueError('Traitement obsolète.')
+        if job['status'] != 'generating' or job['kind'] != 'video' or type(started) is not bool:
+            raise ValueError('Traitement obsolète.')
+        self.add_files(job_id, footprint)
+        self.save_quotas(quotas)
+        if usage is not None and session:
+            self.record_usage(job_id, session, lease, usage, job['engine'])
+        engine = job['engine']
+        alternative = 'claude' if engine == 'codex' else 'codex'
+        current, spare = quotas.get(engine), quotas.get(alternative) or {}
+        if not started and not job['handoff']:
+            self.request_cancel(job_id, 'quota-before-start', lease=lease)
+            self.emit(f'quota-before-start:{job_id}', None, {'kind': 'text', 'text':
+                f"{LABELS[engine]} n’a plus d’usage disponible ({describe_quota(current)}). "
+                'Aucune vidéo n’a été commencée et la tâche est annulée. Choisissez un autre modèle avec /modele.'})
+            return {'jobId': job_id, 'status': 'cancelling'}
+        if spare.get('exhausted') is True or spare.get('status') == 'not_configured':
+            self.request_cancel(job_id, 'quota-all', lease=lease)
+            self.emit(f'quota-all:{job_id}', None, {'kind': 'text', 'text':
+                f"Codex et Claude n’ont plus d’usage disponible. La tâche {job_id} est annulée : "
+                'tout ce qui a été produit va être supprimé.'})
+            return {'jobId': job_id, 'status': 'cancelling'}
+        fallback = {'from': engine, 'to': alternative, 'at': now()}
+        self.db.execute("UPDATE jobs SET status='needs_fallback',fallback=?,updated=? WHERE id=?",
+                        (json.dumps(fallback), now(), job_id))
+        self.audit(job_id, 'quota-exhausted', {'engine': engine, 'started': started})
+        self.emit(f'fallback:{job_id}:{uuid.uuid4().hex[:8]}', job_id, {'kind': 'menu', 'jobId': job_id,
+            'text': (f"{LABELS[engine]} n’a plus d’usage pendant la création de la vidéo option {job['option']} "
+                     f"(tâche {job_id} ; {describe_quota(current)}).\n\n"
+                     f"Relancer avec {LABELS[alternative]} ({describe_quota(spare)}) ? "
+                     f"Il reprendra là où {LABELS[engine]} s’est arrêté.\n"
+                     'Non : annulation et suppression de tout ce qui a été produit.\n'
+                     f'Vous pouvez aussi répondre oui ou non, ou /relancer {job_id} oui|non.'),
+            'keyboard': keyboard((f'Oui, relancer avec {LABELS[alternative]}', f'fallback:{job_id}:yes'),
+                                 ('Non, tout annuler', f'fallback:{job_id}:no'))})
+        return {'jobId': job_id, 'status': 'needs_fallback'}
+
+    @atomic
+    def fallback_decision(self, job_id, owner, chat, accept):
+        job = self.owned(job_id, owner, chat)
+        if job['status'] != 'needs_fallback' or not job['fallback']:
+            raise ValueError('Aucune relance en attente pour cette tâche.')
+        if not accept:
+            return self.request_cancel(job_id, 'fallback-declined', owner, chat)
+        target = job['fallback']['to']
+        handoff = {'from': job['engine'], 'reason': 'quota', 'files': self.files(job_id)}
+        self.db.execute("""UPDATE jobs SET engine=?,status='queued',session=NULL,question=NULL,lease=NULL,
+            handoff=?,fallback=NULL,updated=? WHERE id=?""", (target, json.dumps(handoff), now(), job_id))
+        self.audit(job_id, 'fallback-accepted', {'from': job['engine'], 'to': target})
+        return {'jobId': job_id, 'status': 'queued', 'engine': target}

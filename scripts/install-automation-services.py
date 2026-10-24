@@ -132,6 +132,25 @@ if not config.exists():
     config.chmod(0o600)
     os.chown(config, worker.pw_uid, worker.pw_gid)
 os.chown(codex_home, worker.pw_uid, worker.pw_gid)
+# Claude Code : copie figée hors de /root (inaccessible au worker), sans mise à jour automatique.
+claude_source = Path('/root/.local/bin/claude').resolve()
+claude_target = Path('/usr/local/lib/englizy-claude/claude')
+if claude_source.is_file():
+    claude_target.parent.mkdir(mode=0o755, parents=True, exist_ok=True)
+    temporary = claude_target.with_suffix('.tmp')
+    shutil.copyfile(claude_source, temporary)
+    temporary.chmod(0o755)
+    temporary.replace(claude_target)
+claude_home = Path(worker.pw_dir) / '.claude'
+claude_home.mkdir(mode=0o700, exist_ok=True)
+os.chown(claude_home, worker.pw_uid, worker.pw_gid)
+claude_dropin = Path('/etc/systemd/system/englizy-worker.service.d/30-claude.conf')
+if Path('/var/lib/englizy/secrets/claude-oauth-token').is_file():
+    claude_dropin.parent.mkdir(mode=0o755, exist_ok=True)
+    shutil.copyfile(ROOT / 'deploy/n8n/englizy-worker-claude.conf', claude_dropin)
+    claude_dropin.chmod(0o644)
+elif claude_dropin.exists():
+    claude_dropin.unlink()
 git_config = Path(worker.pw_dir) / '.gitconfig'
 if not git_config.exists():
     git_config.write_text('[safe]\n\tdirectory = /srv/englizy-repository\n')
@@ -156,4 +175,5 @@ if args.start:
 print(json.dumps({'installed': True, 'started': args.start, 'bridge': f'http://{gateway}:8787',
                   'mode': 'video-preview' if video_enabled else 'probe-only',
                   'repositoryAccess': 'read-only with targeted data/output mounts' if video_enabled else 'read-only bind mount',
-                  'codexAuth': 'private service cache; no secret in Git or logs'}))
+                  'codexAuth': 'private service cache; no secret in Git or logs',
+                  'claude': 'configured' if claude_dropin.exists() and claude_target.is_file() else 'not configured'}))

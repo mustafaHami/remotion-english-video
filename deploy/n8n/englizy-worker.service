@@ -1,5 +1,5 @@
 [Unit]
-Description=Englizy Codex job worker
+Description=Englizy Codex/Claude job worker
 After=network-online.target englizy-bridge.service
 Wants=network-online.target englizy-bridge.service
 
@@ -11,6 +11,8 @@ WorkingDirectory=/opt/englizy-automation
 ExecStart=/usr/bin/python3 -m automation.worker --config /etc/englizy/worker.json
 Environment=ENGLIZY_REPO=/srv/englizy-repository
 Environment=CODEX_HOME=/var/lib/englizy-worker/.codex
+Environment=ENGLIZY_CLAUDE_BIN=/usr/local/lib/englizy-claude/claude
+Environment=ENGLIZY_CLAUDE_CONFIG_DIR=/var/lib/englizy-worker/.claude
 LoadCredential=worker-token:/var/lib/englizy/secrets/worker-bridge-token
 StateDirectory=englizy-worker
 StateDirectoryMode=0700

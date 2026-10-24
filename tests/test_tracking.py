@@ -13,6 +13,7 @@ from openpyxl import Workbook, load_workbook
 from automation.store import Store
 from automation.bridge import Application
 from automation import planning, retention, tracking
+from model_helpers import select_model
 
 
 class TrackingTests(unittest.TestCase):
@@ -48,6 +49,7 @@ class TrackingTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.store.confirm_shared(job,1,101,101,{'source':'telegram-receipt'})
 
     def test_outstanding_video_blocks_new_menu_and_stale_choice(self):
+        select_model(self.app, self.store)
         menu = self.app.options(self.store)
         choice = menu['keyboard']['rows'][0]['row']['buttons'][0]['additionalFields']['callback_data'].split(':')[1]
         job = self.ready()

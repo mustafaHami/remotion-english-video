@@ -1,4 +1,4 @@
-"""Lanceur Codex sans shell ; le mode probe ne fabrique aucun média."""
+"""Lanceur Codex ou Claude sans shell ; le mode probe ne fabrique aucun média."""
 import argparse
 import hashlib
 import json
@@ -10,10 +10,12 @@ import subprocess
 import uuid
 import shutil
 
+from . import engines
+
 ROOT = Path(os.environ.get('ENGLIZY_REPO', Path(__file__).resolve().parents[1])).resolve()
 SCHEMA = Path(__file__).resolve().parent / 'result.schema.json'
 MISSION = '''Utilise explicitement le skill create-english-video dans
-.agents/skills/create-english-video/SKILL.md. Lis les règles du dépôt et la fiche
+{skill}. Lis les règles du dépôt et la fiche
 de l'option validée dans les données. Consulte réellement planning et historique,
 choisis un contenu inédit, crée un épisode distinct, prépare les voix, rends et
 vérifie la vidéo. Ne publie rien, ne pousse pas Git, ne change ni modèle, ni fixture,
@@ -28,9 +30,27 @@ Utilise les chemins du dépôt courant /srv/englizy-repository. Seuls content/ep
 public/audio/production, output/options et le cache Remotion sont accessibles en écriture.
 N'exécute pas npm ci et n'installe aucune dépendance : elles sont déjà installées.
 Utilise explicitement PYTHON pour les scripts Python. RENDER_CONCURRENCY=2 est fixé.
-Ne modifie jamais les publications ni le planning. Inspecte les captures avec view_image
+Ne modifie jamais les publications ni le planning. Inspecte les captures avec {viewer}
 avant de déclarer visualImages=true. L'écoute subjective peut rester non effectuée.
 '''
+SKILLS = {'codex': '.agents/skills/create-english-video/SKILL.md', 'claude': '.claude/skills/create-english-video/SKILL.md'}
+VIEWERS = {'codex': 'view_image', 'claude': "l'outil Read (images PNG)"}
+HANDOFF = '''Reprise d'une tâche commencée par {previous}, interrompue faute de quota.
+Ne recommence pas depuis zéro : examine d'abord les fichiers déjà produits pour cette tâche
+(liste handoff.files dans les données, chemins relatifs au dépôt). Si un épisode valide existe,
+garde-le ; si une réalisation contient creation.json sans MP4 vérifié, termine-la avec
+npm run video:new -- --render="<creation.json>". Corrige seulement ce qui manque ou échoue.
+Les règles ci-dessous restent intégralement applicables.
+
+'''
+
+
+class QuotaExhausted(RuntimeError):
+    """L'agent a refusé de travailler faute de quota ; aucune relance automatique."""
+
+
+def mission(engine):
+    return MISSION.format(skill=SKILLS[engine], viewer=VIEWERS[engine])
 
 
 def validate_schema(value, schema):
@@ -124,17 +144,55 @@ def arguments(job, directory, probe=False):
     return args
 
 
-def session_usage(events_path):
+WRITABLE = ['content/episodes', 'public/audio/production', 'output/options', 'node_modules/.cache']
+HIDDEN = ['/var/lib/englizy-worker', '/var/lib/englizy-media', '/var/lib/englizy', '/etc/englizy',
+          '/run/credentials', '/var/backups']
+
+
+def claude_arguments(job, session, probe=False):
+    """Mode non interactif : contrat JSON, session exacte, outils autorisés dans le seul bac à sable."""
+    uuid.UUID(session)
+    settings = {'permissions': {'allow': ['Bash', 'Read', 'Edit', 'Write', 'Glob', 'Grep', 'Skill', 'TodoWrite'],
+                                'deny': ['WebFetch', 'WebSearch']}}
+    args = [engines.claude_binary(), '-p', '--output-format', 'stream-json', '--verbose',
+            '--model', engines.CLAUDE_MODEL, '--effort', engines.CLAUDE_EFFORT,
+            '--json-schema', SCHEMA.read_text(), '--permission-mode', 'dontAsk',
+            '--settings', json.dumps(settings)]
+    if probe:
+        args += ['--tools', '']
+    args += ['--resume', session] if job.get('session') else ['--session-id', session]
+    if probe:
+        return args
+    config_dir = Path(engines.claude_config_dir())
+    return engines.jail(args, [ROOT / item for item in WRITABLE if (ROOT / item).is_dir()], HIDDEN, config_dir, ROOT)
+
+
+def session_usage(events_path, engine='codex'):
     """Return the invocation's session UUID and sum the available per-turn counters."""
     session = None
     usage = None
     names = ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens')
     with Path(events_path).open() as events:
         for line in events:
-            event = json.loads(line)
-            if event.get('type') == 'thread.started':
-                session = event['thread_id']
-            sample = event.get('usage') if event.get('type') == 'turn.completed' else None
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            sample = None
+            if engine == 'codex':
+                if event.get('type') == 'thread.started':
+                    session = event['thread_id']
+                sample = event.get('usage') if event.get('type') == 'turn.completed' else None
+            else:
+                if event.get('type') == 'system' and event.get('subtype') == 'init':
+                    session = event.get('session_id')
+                raw = event.get('usage') if event.get('type') == 'result' else None
+                if isinstance(raw, dict) and all(type(raw.get(k, 0)) is int for k in
+                        ('input_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens', 'output_tokens')):
+                    cached = raw.get('cache_read_input_tokens', 0)
+                    sample = {'input_tokens': raw.get('input_tokens', 0) + raw.get('cache_creation_input_tokens', 0) + cached,
+                              'cached_input_tokens': cached, 'output_tokens': raw.get('output_tokens', 0),
+                              'reasoning_output_tokens': 0}
             if isinstance(sample, dict) and all(type(sample.get(name)) is int and sample[name] >= 0 for name in names):
                 candidate = {name: sample[name] for name in names}
                 if candidate['cached_input_tokens'] > candidate['input_tokens']:
@@ -148,7 +206,25 @@ def session_usage(events_path):
     return session, usage
 
 
+def claude_result(events_path, directory):
+    """Le contrat JSON validé par Claude devient result.json, comme la sortie Codex."""
+    found = None
+    with Path(events_path).open() as events:
+        for line in events:
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if event.get('type') == 'result':
+                found = event
+    if not found or found.get('is_error') or not isinstance(found.get('structured_output'), dict):
+        raise RuntimeError('Résultat Claude absent ou en erreur ; diagnostic conservé dans le dossier protégé.')
+    (directory / 'result.json').write_text(json.dumps(found['structured_output'], ensure_ascii=False))
+
+
 def run(job, state_dir, probe=False, answer=None, timeout=7200):
+    engine = job.get('engine') or 'codex'
+    label = engines.LABELS[engine]
     if not probe and os.geteuid() == 0:
         raise RuntimeError('La production exige un compte de service dédié, sans accès root général.')
     if (not re.fullmatch(r'[a-f0-9]{12}', job['id']) or type(job['revision']) is not int
@@ -164,12 +240,15 @@ def run(job, state_dir, probe=False, answer=None, timeout=7200):
             data['brief'] = job['brief']
         if answer is not None:
             data['answer'] = answer
-        instruction = ('Reprends cette tâche dans la session Codex existante. Utilise son contexte et le skill déjà chargé. '
+        instruction = (f'Reprends cette tâche dans la session {label} existante. Utilise son contexte et le skill déjà chargé. '
                        'Traite les nouvelles données ci-dessous, puis poursuis les vérifications et le contrat JSON initial. '
                        'Ne recommence pas les étapes déjà validées et ne publie rien.')
     else:
         data['brief'] = job.get('brief', '')
-        instruction = MISSION
+        instruction = mission(engine)
+        if job.get('handoff'):
+            data['handoff'] = job['handoff']
+            instruction = HANDOFF.format(previous=engines.LABELS[job['handoff']['from']]) + instruction
     if probe:
         instruction = '''Test technique de liaison sans mutation. Ne crée ni épisode ni média,
 n'appelle aucun service externe et n'exécute aucune commande. Au premier tour,
@@ -178,16 +257,28 @@ Si les données contiennent answer, retourne completed en rappelant ce code dans
 Les chemins de livrables et sessionId/questionId restent null ; tous les checks sont false.
 '''
     prompt = instruction + '\nDonnées JSON de tâche :\n' + json.dumps(data, ensure_ascii=False)
-    # Aucun jeton n8n, Telegram ou Buffer dans l'environnement du processus Codex.
+    # Aucun jeton n8n, Telegram ou Buffer dans l'environnement du processus agent.
     env = {k: v for k, v in os.environ.items() if k in
            ['PATH', 'HOME', 'CODEX_HOME', 'LANG', 'LC_ALL', 'TMPDIR', 'SSL_CERT_FILE', 'SSL_CERT_DIR']}
     env['PYTHON'] = str(ROOT / '.venv/bin/python')
     env['PUBLISH_ENABLED'] = 'false'
     env['RENDER_CONCURRENCY'] = '2'
+    expected = job.get('session')
+    if engine == 'claude':
+        token = engines.claude_token()
+        if not token:
+            raise RuntimeError('Claude non configuré sur ce worker.')
+        expected = expected or str(uuid.uuid4())
+        Path(engines.claude_config_dir()).mkdir(mode=0o700, parents=True, exist_ok=True)
+        env.pop('CODEX_HOME', None)
+        env.update(CLAUDE_CONFIG_DIR=engines.claude_config_dir(), CLAUDE_CODE_OAUTH_TOKEN=token, DISABLE_AUTOUPDATER='1')
+        command = claude_arguments(job, expected, probe)
+    else:
+        command = arguments(job, directory, probe)
     with (directory / 'events.jsonl').open('w') as events, (directory / 'stderr.log').open('w') as errors:
-        process = subprocess.Popen(arguments(job, directory, probe), cwd=ROOT, env=env,
+        process = subprocess.Popen(command, cwd=ROOT, env=env,
             stdin=subprocess.PIPE, stdout=events, stderr=errors, text=True, start_new_session=True)
-        (directory / 'process.json').write_text(json.dumps({'pid': process.pid, 'jobId': job['id']}))
+        (directory / 'process.json').write_text(json.dumps({'pid': process.pid, 'jobId': job['id'], 'engine': engine}))
         try:
             process.communicate(prompt, timeout=timeout)
         except (subprocess.TimeoutExpired, KeyboardInterrupt):
@@ -197,22 +288,26 @@ Les chemins de livrables et sessionId/questionId restent null ; tous les checks 
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
-            raise RuntimeError('Codex interrompu ; examiner les fichiers de tâche avant reprise.') from None
-    session, usage = session_usage(directory / 'events.jsonl')
+            raise RuntimeError(f'{label} interrompu ; examiner les fichiers de tâche avant reprise.') from None
+    session, usage = session_usage(directory / 'events.jsonl', engine)
     if usage is not None:
         usage_record = usage | {'sessionId': session}
         (directory / 'usage.json').write_text(json.dumps(usage_record, indent=2) + '\n')
+    if engines.quota_from_events(engine, directory / 'events.jsonl'):
+        raise QuotaExhausted(f'{label} n’a plus d’usage disponible.')
     if process.returncode:
-        raise RuntimeError('Échec Codex ; diagnostic conservé dans le dossier protégé de la tâche.')
+        raise RuntimeError(f'Échec {label} ; diagnostic conservé dans le dossier protégé de la tâche.')
     if not session:
-        raise ValueError('Événement de session Codex absent.')
+        raise ValueError(f'Événement de session {label} absent.')
     uuid.UUID(session)
-    if job.get('session') and session != job['session']:
+    if expected and session != expected:
         raise ValueError('La reprise a changé de session ; traitement interrompu.')
+    if engine == 'claude':
+        claude_result(directory / 'events.jsonl', directory)
     result = json.loads((directory / 'result.json').read_text())
     validate_schema(result, json.loads(SCHEMA.read_text()))
     if result['jobId'] != job['id'] or result['revision'] != job['revision']:
-        raise ValueError('Sortie Codex rattachée à une autre tâche.')
+        raise ValueError(f'Sortie {label} rattachée à une autre tâche.')
     if result['sessionId'] is not None and result['sessionId'] != session:
         raise ValueError('Session de sortie inventée ou incorrecte.')
     if result['status'] == 'needs_input' and not result['question']:

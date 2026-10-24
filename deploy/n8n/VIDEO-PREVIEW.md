@@ -4,9 +4,10 @@
 
 ## Parcours
 
+0. `/modele` choisit l'agent (Codex ou Claude) avec ses quotas ; `/video` est refusé sans ce choix. Voir [MODELS.md](MODELS.md).
 1. `/video` ou `/options` ouvre le catalogue des 14 noms du projet dans Telegram, avec boutons numérotés. Le premier menu a été envoyé par n8n (message 16).
 2. Le choix appartient au compte et à la conversation confirmés. Un numéro saisi en texte sélectionne également le menu ouvert ; une réponse citant explicitement une question reste rattachée à cette question. Le premier clic crée un job vidéo ; un double clic ou un ancien bouton consommé retrouve le même job. `/choisir <identifiant du menu> <numéro>` est une alternative explicite.
-3. Le worker appelle Codex avec le skill `.agents/skills/create-english-video/SKILL.md`. Il lit planning Excel, historique et épisodes, sélectionne un contenu inédit puis crée un épisode distinct. Les scripts du projet préparent l'audio, le MP4 et les contrôles. Remotion utilise deux rendus de frames concurrents.
+3. Le worker appelle l'agent choisi : Codex avec `.agents/skills/create-english-video/SKILL.md`, ou Claude avec la copie synchronisée `.claude/skills/create-english-video/SKILL.md`. Il lit planning Excel, historique et épisodes, sélectionne un contenu inédit puis crée un épisode distinct. Les scripts du projet préparent l'audio, le MP4 et les contrôles. Remotion utilise deux rendus de frames concurrents.
 4. Les questions nécessaires gardent le mécanisme de corrélation et de reprise testé. Les messages ordinaires ne créent aucune nouvelle vidéo.
 5. Le runner vérifie les chemins, manifeste, contenu, empreinte, pistes audio/vidéo, dimensions, durée et rapports. Il relance le contrôle technique ; l'inspection d'images reste une action de l'agent à constater séparément. Une écoute subjective absente est annoncée.
 6. Le worker prépare une copie privée du MP4 dans `/var/lib/englizy-media/<job>/r<révision>/preview.mp4`. Sous 47 Mio, copie identique ; au-delà, copie réduite en 720 × 1280, H.264/AAC, sans toucher à l'original. Une copie encore trop grande provoque un échec explicite. L'empreinte du fichier envoyé et celle de l'original sont distinctes et persistées.

@@ -12,8 +12,11 @@ Règles explicitement choisies par l'utilisateur : un partage désigne une publi
 | `pending_validation` | Envoi Telegram confirmé, avis attendu | Non |
 | `validated` | Cette version est validée, reste à publier | Non |
 | `shared` | Publication terminée sur les réseaux, confirmée | Oui |
-| `failed` | Incident à examiner | Non |
-| `cancelled` | Annulation explicitement demandée | Oui |
+| `failed` | Incident à examiner ; `/annuler ID` supprime tout | Non |
+| `needs_fallback` | Quota épuisé pendant le travail, relance avec l'autre agent à confirmer | Non |
+| `cancelling` | Annulation demandée, nettoyage par le worker | Non |
+| `cleanup_failed` | Nettoyage en erreur, `/annuler ID` réessaie | Non |
+| `cancelled` | Annulée et nettoyée (ligne minimale), retirée d'Excel et de `production.json` | Oui |
 
 `/encours` liste les identifiants, options, états et actions attendues. `/valider IDENTIFIANT VERSION` valide seulement une version réellement envoyée, avec son empreinte ; ce n'est pas un accord de publication. Après publication manuelle terminée, `/partage IDENTIFIANT VERSION CONFIRME plateformes ou liens` enregistre la déclaration explicite de l'utilisateur confirmé, les plateformes reconnues et les liens fournis, sans effectuer de requête de publication. Il faut confirmer la fin sur toutes les destinations prévues ; une publication partielle reste ouverte. Les plateformes/liens inconnus restent absents, sans invention.
 
