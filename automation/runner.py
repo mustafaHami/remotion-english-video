@@ -124,6 +124,30 @@ def arguments(job, directory, probe=False):
     return args
 
 
+def session_usage(events_path):
+    """Return the invocation's session UUID and sum the available per-turn counters."""
+    session = None
+    usage = None
+    names = ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens')
+    with Path(events_path).open() as events:
+        for line in events:
+            event = json.loads(line)
+            if event.get('type') == 'thread.started':
+                session = event['thread_id']
+            sample = event.get('usage') if event.get('type') == 'turn.completed' else None
+            if isinstance(sample, dict) and all(type(sample.get(name)) is int and sample[name] >= 0 for name in names):
+                candidate = {name: sample[name] for name in names}
+                if candidate['cached_input_tokens'] > candidate['input_tokens']:
+                    continue
+                candidate['total_tokens'] = candidate['input_tokens'] + candidate['output_tokens']
+                if usage is None:
+                    usage = candidate
+                else:
+                    for name in (*names, 'total_tokens'):
+                        usage[name] += candidate[name]
+    return session, usage
+
+
 def run(job, state_dir, probe=False, answer=None, timeout=7200):
     if not probe and os.geteuid() == 0:
         raise RuntimeError('La production exige un compte de service dédié, sans accès root général.')
@@ -132,9 +156,20 @@ def run(job, state_dir, probe=False, answer=None, timeout=7200):
         raise ValueError('Identité ou option de tâche invalide.')
     directory = Path(state_dir).resolve() / job['id'] / f"r{job['revision']}-{uuid.uuid4().hex[:8]}"
     directory.mkdir(parents=True, mode=0o700)
-    data = {'jobId': job['id'], 'revision': job['revision'], 'option': job['option'],
-            'brief': job.get('brief', ''), 'answer': answer, 'previousResult': job.get('result')}
-    instruction = MISSION
+    data = {'jobId': job['id'], 'revision': job['revision'], 'option': job['option']}
+    if job.get('session'):
+        # L'historique de la session exacte contient déjà mission, plan et résultat précédent.
+        # Ne pas réinjecter le gros résultat validé à chaque réponse Telegram.
+        if job.get('brief'):
+            data['brief'] = job['brief']
+        if answer is not None:
+            data['answer'] = answer
+        instruction = ('Reprends cette tâche dans la session Codex existante. Utilise son contexte et le skill déjà chargé. '
+                       'Traite les nouvelles données ci-dessous, puis poursuis les vérifications et le contrat JSON initial. '
+                       'Ne recommence pas les étapes déjà validées et ne publie rien.')
+    else:
+        data['brief'] = job.get('brief', '')
+        instruction = MISSION
     if probe:
         instruction = '''Test technique de liaison sans mutation. Ne crée ni épisode ni média,
 n'appelle aucun service externe et n'exécute aucune commande. Au premier tour,
@@ -163,14 +198,12 @@ Les chemins de livrables et sessionId/questionId restent null ; tous les checks 
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
             raise RuntimeError('Codex interrompu ; examiner les fichiers de tâche avant reprise.') from None
+    session, usage = session_usage(directory / 'events.jsonl')
+    if usage is not None:
+        usage_record = usage | {'sessionId': session}
+        (directory / 'usage.json').write_text(json.dumps(usage_record, indent=2) + '\n')
     if process.returncode:
         raise RuntimeError('Échec Codex ; diagnostic conservé dans le dossier protégé de la tâche.')
-    session = None
-    with (directory / 'events.jsonl').open() as events:
-        for line in events:
-            event = json.loads(line)
-            if event.get('type') == 'thread.started':
-                session = event['thread_id']
     if not session:
         raise ValueError('Événement de session Codex absent.')
     uuid.UUID(session)

@@ -31,6 +31,21 @@ def request(url, token, path, body):
         return json.load(response)
 
 
+def latest_usage(run_root, job_id, run_started_at_ns=None):
+    if run_started_at_ns is None:
+        return None, None
+    candidates = (Path(run_root) / job_id).glob('*/usage.json')
+    for path in sorted((item for item in candidates if item.stat().st_mtime_ns >= run_started_at_ns),
+                       key=lambda item: item.stat().st_mtime_ns, reverse=True):
+        try:
+            value = json.loads(path.read_text())
+            session = value.pop('sessionId')
+            return value, session
+        except (OSError, ValueError, KeyError):
+            continue
+    return None, None
+
+
 def cycle(config, token):
     directory = Path(config['stateDir'])
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -49,18 +64,27 @@ def cycle(config, token):
         save(state_file, state)
     elif state['phase'] == 'running':
         # systemd KillMode=control-group a arrêté les anciens enfants avant ce redémarrage.
+        state['usage'], state['usageSession'] = latest_usage(
+            directory / 'runs', state['job']['id'], state.get('runStartedAtNs'))
         state['phase'] = 'failed'
         save(state_file, state)
     if state['phase'] == 'claimed':
         state['phase'] = 'running'
+        state['runStartedAtNs'] = time.time_ns()
         save(state_file, state)
         try:
             is_probe = state['job']['kind'] == 'probe'
             if not is_probe and not config.get('videoEnabled', False):
                 raise ValueError('Production non activée sur ce worker.')
             result = run(state['job'], directory / 'runs', probe=is_probe, answer=state.get('answer'), timeout=900 if is_probe else 7200)
-            state.update(phase='preparing' if not is_probe and result['status'] == 'completed' else 'submitting', result=result)
+            usage, usage_session = latest_usage(directory / 'runs', state['job']['id'], state['runStartedAtNs'])
+            if usage_session and usage_session != result['sessionId']:
+                raise ValueError('Compteurs Codex rattachés à une autre session.')
+            state.update(phase='preparing' if not is_probe and result['status'] == 'completed' else 'submitting',
+                         result=result, usage=usage, usageSession=result['sessionId'])
         except Exception as error:
+            state['usage'], state['usageSession'] = latest_usage(
+                directory / 'runs', state['job']['id'], state.get('runStartedAtNs'))
             save(directory / 'last-failure.json', {'jobId': state['job']['id'], 'type': type(error).__name__, 'error': str(error)})
             state['phase'] = 'failed'
         save(state_file, state)
@@ -75,9 +99,11 @@ def cycle(config, token):
         save(state_file, state)
     job = state['job']
     if state['phase'] == 'submitting':
-        request(config['bridge'], token, '/worker/result', {'lease': job['lease'], 'result': state['result'], 'preview': state.get('preview')})
+        request(config['bridge'], token, '/worker/result', {'lease': job['lease'], 'result': state['result'],
+                'usage': state.get('usage'), 'preview': state.get('preview')})
     elif state['phase'] == 'failed':
-        request(config['bridge'], token, '/worker/failure', {'jobId': job['id'], 'lease': job['lease']})
+        request(config['bridge'], token, '/worker/failure', {'jobId': job['id'], 'lease': job['lease'],
+                'usage': state.get('usage'), 'sessionId': state.get('usageSession')})
     state_file.unlink()
     return True
 

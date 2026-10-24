@@ -9,7 +9,7 @@ import sys
 import importlib.util
 from unittest.mock import patch
 
-from automation.runner import arguments, allowed_file, SCHEMA, validate_schema
+from automation.runner import arguments, allowed_file, SCHEMA, session_usage, validate_schema
 from automation.store import Store, digest
 
 SESSION = '01a168f3-7278-75b2-aa8f-ccaf2902b955'
@@ -66,6 +66,19 @@ class DurableStateTests(unittest.TestCase):
         self.assertEqual(self.store.claim()['id'], a)
         self.assertIsNone(self.store.claim())
         self.assertEqual(self.store.get(b)['status'], 'queued')
+
+    def test_runner_sums_per_turn_usage_for_one_invocation(self):
+        events = Path(self.tmp.name) / 'events.jsonl'
+        events.write_text('\n'.join([
+            json.dumps({'type':'thread.started','thread_id':SESSION}),
+            json.dumps({'type':'turn.completed','usage':{'input_tokens':100,'cached_input_tokens':80,
+                       'output_tokens':10,'reasoning_output_tokens':2}}),
+            json.dumps({'type':'turn.completed','usage':{'input_tokens':50,'cached_input_tokens':20,
+                       'output_tokens':5,'reasoning_output_tokens':1}}),
+        ])+'\n')
+        self.assertEqual(session_usage(events), (SESSION, {
+            'input_tokens':150,'cached_input_tokens':100,'output_tokens':15,
+            'reasoning_output_tokens':3,'total_tokens':165}))
 
     def test_question_persisted_before_notification_and_exact_session_resumed(self):
         job_id = self.job()

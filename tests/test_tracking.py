@@ -166,5 +166,48 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(publication['expected'],'{}');self.assertEqual(publication['edit_input'],'{}')
         self.assertEqual(json.loads(publication['response']),{'status':'sent','sentAt':at,'externalLink':None})
 
+    def test_codex_usage_sums_invocations_once_and_survives_restart(self):
+        job=self.store.create(101,101,1)['jobId']
+        session='01a168f3-7278-75b2-aa8f-ccaf2902b955'
+        first={'input_tokens':100,'cached_input_tokens':80,'output_tokens':10,
+               'reasoning_output_tokens':2,'total_tokens':110}
+        second={'input_tokens':50,'cached_input_tokens':20,'output_tokens':5,
+                'reasoning_output_tokens':1,'total_tokens':55}
+        self.store.record_usage(job,session,'lease-one',first)
+        self.store.record_usage(job,session,'lease-one',first)
+        self.store.record_usage(job,session,'lease-two',second)
+        self.store.close();self.store=Store(self.database)
+        self.assertEqual(self.store.codex_usage(job),{
+            'input_tokens':150,'cached_input_tokens':100,'output_tokens':15,
+            'reasoning_output_tokens':3,'total_tokens':165})
+
+    def test_retention_removes_task_runs_and_unreferenced_rollout_but_keeps_usage(self):
+        job=self.store.create(101,101,1)['jobId']
+        session='01a168f3-7278-75b2-aa8f-ccaf2902b955'
+        self.store.db.execute("UPDATE jobs SET status='cancelled',session=?,closed_at=? WHERE id=?",
+                              (session,'2026-01-01T00:00:00+00:00',job))
+        self.store.record_usage(job,session,'lease-one',{'input_tokens':100,'cached_input_tokens':80,
+                              'output_tokens':10,'reasoning_output_tokens':2,'total_tokens':110})
+        worker=self.root/'worker'
+        run=worker/'jobs/runs'/job/'r1-run'
+        run.mkdir(parents=True)
+        (run/'events.jsonl').write_text(json.dumps({'type':'thread.started','thread_id':session})+'\n')
+        rollout=worker/'.codex/sessions/2026/10/24'/f'rollout-{session}.jsonl'
+        rollout.parent.mkdir(parents=True)
+        rollout.write_text('{}\n')
+        moment=datetime.datetime(2026,1,17,tzinfo=datetime.timezone.utc)
+        before=retention.apply(self.store,self.root,self.root/'media',self.root/'backup',
+                               moment-datetime.timedelta(days=2),worker_root=worker)
+        self.assertEqual(before['codexArtifactsPurged'],[])
+        self.assertTrue(rollout.exists())
+        self.assertTrue(run.exists())
+        result=retention.apply(self.store,self.root,self.root/'media',self.root/'backup',moment,
+                               worker_root=worker)
+        self.assertEqual(result['codexArtifactsPurged'],[job])
+        self.assertFalse((worker/'jobs/runs'/job).exists())
+        self.assertFalse(rollout.exists())
+        self.assertIsNone(self.store.get(job)['session'])
+        self.assertEqual(self.store.codex_usage(job)['total_tokens'],110)
+
 
 if __name__ == '__main__': unittest.main()

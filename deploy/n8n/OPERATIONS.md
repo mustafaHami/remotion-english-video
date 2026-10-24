@@ -128,8 +128,8 @@ Les deux services sont actifs et activés au démarrage. Ils ont `ProtectSystem=
 
 - `automation/bridge.py` authentifie les routes, déduplique les événements et corrèle les réponses. Il n'appelle jamais Telegram directement.
 - `automation/worker.py` persiste la réservation et le résultat avant chaque échange. Un résultat peut être retransmis sans relancer Codex. Une interruption pendant l'exécution devient un échec explicite, sans relance aveugle.
-- `automation/runner.py` utilise des arguments séparés, le prompt par stdin, une sortie structurée et l'UUID réellement obtenu. La reprise vise cet UUID, jamais « la dernière session ». Les secrets de transport sont exclus de l'environnement Codex.
-- `automation/store.py` conserve tâches, questions, événements, reçus et versions dans SQLite/WAL. Les futurs accords de publication sont liés à la révision, au hash vidéo, aux légendes, destinations et horaire ; ces garde-fous sont testés en simulation, pas encore exposés comme parcours de publication.
+- `automation/runner.py` utilise des arguments séparés, le prompt par stdin, une sortie structurée et l'UUID réellement obtenu. La reprise vise cet UUID, jamais « la dernière session » ; elle n'envoie que la réponse/le brief utile, sans recopier le résultat précédent. Codex fabrique et révise la vidéo, tandis que n8n/Buffer gère le partage : aucune session Codex ne lance la publication.
+- `automation/store.py` conserve tâches, questions, événements, reçus, versions et compteurs d'usage dans SQLite/WAL. `/statut` additionne les usages `turn.completed` des invocations d'une tâche et évite les doublons de retransmission grâce au lease. Les tokens mis en cache sont déjà inclus dans l'entrée. Les compteurs restent après la purge des détails ; les anciens travaux sans relevé restent non mesurés.
 - L'API et le worker autorisent maintenant la fabrication privée par choix de format. Les droits ciblés, la première production et son envoi réel sont décrits dans [VIDEO-PREVIEW.md](VIDEO-PREVIEW.md). La publication reste désactivée.
 
 ### Diagnostic réel et reprise

@@ -96,6 +96,12 @@ class Store:
           CREATE TABLE IF NOT EXISTS preview_media (
             job TEXT NOT NULL REFERENCES jobs(id), revision INTEGER NOT NULL,
             media TEXT NOT NULL, PRIMARY KEY(job,revision));
+          CREATE TABLE IF NOT EXISTS codex_usage (
+            job TEXT NOT NULL, session TEXT NOT NULL, invocation TEXT NOT NULL,
+            input_tokens INTEGER NOT NULL, cached_input_tokens INTEGER NOT NULL,
+            output_tokens INTEGER NOT NULL, reasoning_output_tokens INTEGER NOT NULL,
+            total_tokens INTEGER NOT NULL, updated TEXT NOT NULL,
+            PRIMARY KEY(job,session,invocation));
         ''')
         columns = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
         for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT'),
@@ -226,7 +232,7 @@ class Store:
             self.audit(row[0], 'claimed')
             return self.get(row[0])
 
-    def record(self, job_id, revision, result, actual_session):
+    def record(self, job_id, revision, result, actual_session, usage=None, invocation=None):
         from .runner import SCHEMA, validate_schema
         validate_schema(result, json.loads(SCHEMA.read_text()))
         with self.tx():
@@ -240,6 +246,8 @@ class Store:
             uuid.UUID(actual_session)
             if job['session'] and job['session'] != actual_session:
                 raise ValueError('Le résultat a changé de session.')
+            if usage is not None:
+                self.record_usage(job_id, actual_session, invocation or f'r{revision}', usage)
             status = result['status']
             question_id = None
             if status == 'needs_input':
@@ -267,6 +275,34 @@ class Store:
             if job['kind'] == 'probe' and status == 'completed':
                 self.db.execute('UPDATE jobs SET closed_at=? WHERE id=?', (now(), job_id))
             self.audit(job_id, status)
+
+    def codex_usage(self, job_id):
+        rows = self.db.execute('''SELECT input_tokens,cached_input_tokens,output_tokens,
+                    reasoning_output_tokens,total_tokens FROM codex_usage WHERE job=?''', (job_id,)).fetchall()
+        if not rows:
+            return None
+        return {key: sum(row[key] for row in rows) for key in
+                ('input_tokens','cached_input_tokens','output_tokens','reasoning_output_tokens','total_tokens')}
+
+    @atomic
+    def record_usage(self, job_id, session, invocation, usage):
+        names = ('input_tokens', 'cached_input_tokens', 'output_tokens', 'reasoning_output_tokens')
+        if (not isinstance(usage, dict) or any(type(usage.get(k)) is not int or usage[k] < 0 for k in names)
+                or usage['cached_input_tokens'] > usage['input_tokens']
+                or usage.get('total_tokens') != usage['input_tokens'] + usage['output_tokens']):
+            raise ValueError('Compteurs Codex invalides.')
+        uuid.UUID(session)
+        if not isinstance(invocation, str) or not invocation or len(invocation) > 128:
+            raise ValueError('Identifiant d’invocation Codex invalide.')
+        previous = self.db.execute('''SELECT total_tokens FROM codex_usage
+            WHERE job=? AND session=? AND invocation=?''', (job_id, session, invocation)).fetchone()
+        if previous is None or usage['total_tokens'] > previous['total_tokens']:
+            self.db.execute('''INSERT INTO codex_usage VALUES(?,?,?,?,?,?,?,?,?)
+                ON CONFLICT(job,session,invocation) DO UPDATE SET input_tokens=excluded.input_tokens,
+                cached_input_tokens=excluded.cached_input_tokens,output_tokens=excluded.output_tokens,
+                reasoning_output_tokens=excluded.reasoning_output_tokens,
+                total_tokens=excluded.total_tokens,updated=excluded.updated''',
+                (job_id, session, invocation, *(usage[k] for k in names), usage['total_tokens'], now()))
 
     @atomic
     def answer(self, job_id, question_id, owner, chat, text):

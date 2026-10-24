@@ -42,11 +42,13 @@ Le récapitulatif utilise un second Schedule Trigger dans le workflow de notific
 
 ## Rétention réellement activée
 
-À partir de `shared_at + 10 jours`, le MP4 original de la version partagée et ses copies Telegram et Buffer sont supprimés après vérification des chemins et empreintes. Une modification inattendue bloque la suppression. À partir de `closed_at + 15 jours`, les résultats détaillés, questions/réponses, anciennes révisions et détails d'audit sont purgés. Une notification au résultat incertain bloque la purge de son contexte.
+À partir de `shared_at + 10 jours`, le MP4 original de la version partagée et ses copies Telegram et Buffer sont supprimés après vérification des chemins et empreintes. Une modification inattendue bloque la suppression. À partir de `closed_at + 15 jours`, les résultats détaillés, questions/réponses, anciennes révisions, détails d'audit, journaux de travail Codex et fichiers de transcription de la session sont purgés. Une notification au résultat incertain bloque la purge de son contexte. La purge de la transcription vérifie que l'UUID n'est référencé par aucune autre tâche non purgée ; elle refuse les liens symboliques et chemins inattendus. Les compteurs d'usage restent séparés afin que `/statut` puisse encore les afficher après purge.
+
+Le worker mesure les `turn.completed.usage` disponibles : les tours d'une invocation sont additionnés, l'invocation est identifiée par son lease pour éviter un doublon lors d'un renvoi, puis les invocations distinctes sont additionnées pour la tâche. Les tokens mis en cache sont affichés à titre informatif et sont déjà inclus dans les tokens d'entrée ; le total est entrée + sortie. Ce sont des compteurs d'usage, pas une facture. Les anciennes tâches sans relevé restent « non mesurées » ; aucune valeur n'est reconstruite.
 
 Une fiche minimale, la preuve de validation/partage et les identifiants/reçus nécessaires à la déduplication restent conservés ; la fiche de contenu dans Excel/JSON évite les doublons pédagogiques. Aucun ancien événement ne devient une nouvelle tâche après purge. Les tâches ouvertes, y compris les vidéos validées non publiées et les incidents, ne sont jamais supprimées automatiquement. Pour une suppression sur demande, identifier précisément la tâche et contrôler qu'aucun worker ne travaille dessus ; aucune commande Telegram de suppression générale n'est exposée.
 
-Ces délais concernent les données actives, pas les sauvegardes privées existantes, le cache Codex, les WAV partagés, les épisodes versionnés ou les captures de contrôle. Ces fichiers ne sont pas effacés automatiquement. Les sauvegardes de base prises avant purge restent privées ; leur rotation constitue une politique distincte.
+Ces délais concernent les données actives, pas les sauvegardes privées existantes, les bases internes générales du cache Codex, les WAV partagés, les épisodes versionnés ou les captures de contrôle. Ces fichiers ne sont pas effacés automatiquement. Les sauvegardes de base prises avant purge restent privées ; leur rotation constitue une politique distincte.
 
 ## Preuves et limites
 

@@ -155,7 +155,13 @@ class Application:
                 match = re.fullmatch(r'/statut\s+([a-f0-9]{12})', text.strip())
                 if match:
                     job = store.owned(match[1], sender['id'], chat['id'])
-                    return reply(f"Tâche {job['id']} : {job['status']} (version {job['revision']}).", job['id'])
+                    usage = store.codex_usage(job['id'])
+                    detail = ('Usage Codex : non mesuré.' if usage is None else
+                        'Usage Codex cumulé : ' + f"{usage['total_tokens']:,}".replace(',', '\u202f') +
+                        ' tokens — entrée ' + f"{usage['input_tokens']:,}".replace(',', '\u202f') +
+                        ' (dont cache ' + f"{usage['cached_input_tokens']:,}".replace(',', '\u202f') +
+                        '), sortie ' + f"{usage['output_tokens']:,}".replace(',', '\u202f') + '.')
+                    return reply(f"Tâche {job['id']} : {job['status']} (version {job['revision']}).\n{detail}", job['id'])
                 match = re.fullmatch(r'/question\s+([a-f0-9]{12})', text.strip())
                 if match:
                     job = store.owned(match[1], sender['id'], chat['id'])
@@ -292,6 +298,8 @@ class Application:
                                 'answer': question['answer'] if question else None}
                 if path == '/worker/result':
                     result = body['result']
+                    usage = body.get('usage')
+                    # Keep the pre-migration receipt digest compatible with pending retries.
                     result_hash = digest(result)
                     with store.tx():
                         previous = store.db.execute('SELECT digest FROM worker_receipts WHERE lease=?', (body['lease'],)).fetchone()
@@ -302,7 +310,8 @@ class Application:
                         job = store.get(result['jobId'])
                         if job['lease'] != body['lease'] or (job['kind'] != 'probe' and not self.config.get('videoEnabled', False)):
                             raise ValueError('Traitement obsolète ou non pris en charge.')
-                        store.record(job['id'], result['revision'], result, result['sessionId'])
+                        store.record(job['id'], result['revision'], result, result['sessionId'],
+                                     usage=usage, invocation=body['lease'])
                         if job['kind'] == 'video' and result['status'] == 'completed':
                             if not result['checks']['technicalVideo'] or not result['checks']['visualImages']:
                                 raise ValueError('Vérifications vidéo manquantes.')
@@ -316,7 +325,13 @@ class Application:
                         store.db.execute('INSERT INTO worker_receipts VALUES(?,?)', (body['lease'], result_hash))
                         return {'accepted': True}
                 if path == '/worker/failure':
-                    store.fail(body['jobId'], body['lease'])
+                    with store.tx():
+                        job = store.get(body['jobId'])
+                        if job['lease'] != body['lease']:
+                            raise ValueError('Traitement obsolète.')
+                        if body.get('usage') is not None and body.get('sessionId'):
+                            store.record_usage(job['id'], body['sessionId'], body['lease'], body['usage'])
+                        store.fail(body['jobId'], body['lease'])
                     return {'accepted': True}
             raise PermissionError('Route non autorisée pour ce compte de service.')
         finally:

@@ -5,13 +5,64 @@ import json
 from pathlib import Path
 import re
 import sqlite3
+import shutil
+import uuid
 
 
 def aged(value, days, moment):
     return bool(value) and moment >= datetime.datetime.fromisoformat(value) + datetime.timedelta(days=days)
 
 
-def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/englizy-public-media'):
+def purge_worker_artifacts(store, job, worker_root='/var/lib/englizy-worker'):
+    """Remove this closed job's transcripts only after checking every durable reference."""
+    base = Path(worker_root)
+    runs_root = base / 'jobs' / 'runs'
+    sessions_root = base / '.codex' / 'sessions'
+    job_id = job['id']
+    if not re.fullmatch(r'[a-f0-9]{12}', job_id):
+        raise ValueError('Identifiant invalide pour purge Codex.')
+    ids = set()
+    if job.get('session'):
+        ids.add(str(uuid.UUID(job['session'])))
+    run_dir = runs_root / job_id
+    if (runs_root.is_symlink() or (base / '.codex').is_symlink() or sessions_root.is_symlink()
+            or run_dir.is_symlink() or (run_dir.exists() and run_dir.resolve().parent != runs_root.resolve())):
+        raise ValueError('Dossier de tâche Codex hors chemin ou lien interdit.')
+    if run_dir.exists():
+        if not run_dir.is_dir():
+            raise ValueError('Le chemin des journaux Codex n’est pas un dossier.')
+        for event_file in run_dir.glob('*/events.jsonl'):
+            if (event_file.is_symlink() or event_file.parent.is_symlink()
+                    or not event_file.resolve().is_relative_to(run_dir.resolve())):
+                raise ValueError('Journal Codex lié ou hors dossier.')
+            with event_file.open() as stream:
+                for line in stream:
+                    try:
+                        event = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    if event.get('type') == 'thread.started':
+                        ids.add(str(uuid.UUID(event['thread_id'])))
+    if sessions_root.is_symlink():
+        raise ValueError('Répertoire des sessions Codex lié : purge refusée.')
+    sessions_root_resolved = sessions_root.resolve()
+    for session_id in ids:
+        # Any other retained task may still need the same exact session.
+        reference = store.db.execute(
+            'SELECT 1 FROM jobs WHERE id<>? AND session=? AND purged_at IS NULL LIMIT 1',
+            (job_id, session_id)).fetchone()
+        if reference:
+            continue
+        for rollout in sessions_root.rglob(f'*{session_id}*.jsonl') if sessions_root.exists() else ():
+            if rollout.is_symlink() or not rollout.resolve().is_relative_to(sessions_root_resolved) or not rollout.is_file():
+                raise ValueError('Transcription Codex liée ou hors répertoire des sessions.')
+            rollout.unlink()
+    if run_dir.exists():
+        shutil.rmtree(run_dir)
+
+
+def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/englizy-public-media',
+          worker_root='/var/lib/englizy-worker'):
     moment = moment or datetime.datetime.now(datetime.timezone.utc)
     root, spool = Path(root).resolve(), Path(spool).resolve()
     candidates = [dict(r) for r in store.db.execute("SELECT * FROM jobs WHERE purged_at IS NULL AND closed_at IS NOT NULL")]
@@ -19,12 +70,12 @@ def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/en
                 (j['status'] == 'shared' and aged(j['shared_at'], 10, moment) and not j['media_deleted_at']) or
                 (j['status'] in ['shared','cancelled','completed'] and aged(j['closed_at'], 15, moment))]
     if not eligible:
-        return {'mediaDeleted': [], 'detailsPurged': []}
+        return {'mediaDeleted': [], 'detailsPurged': [], 'codexArtifactsPurged': []}
     backup_dir = Path(backup_dir); backup_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
     backup = backup_dir / ('before-retention-' + moment.strftime('%Y%m%dT%H%M%S%f') + '.sqlite')
     copy = sqlite3.connect(backup)
     store.db.backup(copy); copy.close(); backup.chmod(0o600)
-    report = {'mediaDeleted': [], 'detailsPurged': []}
+    report = {'mediaDeleted': [], 'detailsPurged': [], 'codexArtifactsPurged': []}
     for j in eligible:
         # Empêcher toute suppression par état technique accidentel ou timestamp isolé.
         if j['status'] == 'shared':
@@ -76,6 +127,8 @@ def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/en
                 continue
             if store.db.execute("SELECT 1 FROM outbox WHERE job=? AND status IN ('pending','delivering','delivery_unknown')", (j['id'],)).fetchone():
                 continue  # Une notification non résolue garde son contexte.
+            # Filesystem cleanup is idempotent and precedes erasing the durable session UUID.
+            purge_worker_artifacts(store, j, worker_root)
             with store.tx():
                 # Conserver les identifiants/reçus minimaux : les retries ne recréent rien.
                 store.db.execute('DELETE FROM questions WHERE job=?', (j['id'],))
@@ -96,4 +149,5 @@ def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/en
                                  (moment.isoformat(),j['id']))
                 store.audit(j['id'], 'closed-details-purged', {'closedAt':j['closed_at'],'minimalRecordRetained':True})
             report['detailsPurged'].append(j['id'])
+            report['codexArtifactsPurged'].append(j['id'])
     return report
