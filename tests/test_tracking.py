@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import shutil
+import sqlite3
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -180,6 +181,24 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(self.store.codex_usage(job),{
             'input_tokens':150,'cached_input_tokens':100,'output_tokens':15,
             'reasoning_output_tokens':3,'total_tokens':165})
+
+    def test_legacy_codex_usage_schema_migrates_without_losing_counters(self):
+        job=self.store.create(101,101,1)['jobId']
+        self.store.close()
+        con=sqlite3.connect(self.database)
+        con.execute('DROP TABLE codex_usage')
+        con.execute('''CREATE TABLE codex_usage (
+            job TEXT NOT NULL,session TEXT NOT NULL,input_tokens INTEGER NOT NULL,
+            cached_input_tokens INTEGER NOT NULL,output_tokens INTEGER NOT NULL,
+            reasoning_output_tokens INTEGER NOT NULL,total_tokens INTEGER NOT NULL,
+            updated TEXT NOT NULL,PRIMARY KEY(job,session))''')
+        con.execute('INSERT INTO codex_usage VALUES(?,?,?,?,?,?,?,?)',
+                    (job,'01a168f3-7278-75b2-aa8f-ccaf2902b955',100,80,10,2,110,'2026-10-24T00:00:00+00:00'))
+        con.commit();con.close()
+        self.store=Store(self.database)
+        self.assertIn('invocation',{r[1] for r in self.store.db.execute('PRAGMA table_info(codex_usage)')})
+        self.assertEqual(self.store.codex_usage(job)['total_tokens'],110)
+        self.assertEqual(self.store.db.execute("SELECT invocation FROM codex_usage WHERE job=?",(job,)).fetchone()[0],'legacy')
 
     def test_retention_removes_task_runs_and_unreferenced_rollout_but_keeps_usage(self):
         job=self.store.create(101,101,1)['jobId']

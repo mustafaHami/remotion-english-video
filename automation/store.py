@@ -103,6 +103,25 @@ class Store:
             total_tokens INTEGER NOT NULL, updated TEXT NOT NULL,
             PRIMARY KEY(job,session,invocation));
         ''')
+        usage_columns = {r[1] for r in self.db.execute('PRAGMA table_info(codex_usage)')}
+        if usage_columns and 'invocation' not in usage_columns:
+            required = {'job','session','input_tokens','cached_input_tokens','output_tokens',
+                        'reasoning_output_tokens','total_tokens','updated'}
+            if not required.issubset(usage_columns):
+                raise RuntimeError('Ancien schéma codex_usage inconnu ; migration refusée.')
+            # Preserve earlier per-session totals as one legacy invocation row.
+            with self.tx():
+                self.db.execute('ALTER TABLE codex_usage RENAME TO codex_usage_legacy')
+                self.db.execute('''CREATE TABLE codex_usage (
+                    job TEXT NOT NULL, session TEXT NOT NULL, invocation TEXT NOT NULL,
+                    input_tokens INTEGER NOT NULL, cached_input_tokens INTEGER NOT NULL,
+                    output_tokens INTEGER NOT NULL, reasoning_output_tokens INTEGER NOT NULL,
+                    total_tokens INTEGER NOT NULL, updated TEXT NOT NULL,
+                    PRIMARY KEY(job,session,invocation))''')
+                self.db.execute('''INSERT INTO codex_usage
+                    SELECT job,session,'legacy',input_tokens,cached_input_tokens,output_tokens,
+                           reasoning_output_tokens,total_tokens,updated FROM codex_usage_legacy''')
+                self.db.execute('DROP TABLE codex_usage_legacy')
         columns = {r[1] for r in self.db.execute('PRAGMA table_info(jobs)')}
         for name, definition in [('kind', "TEXT NOT NULL DEFAULT 'video'"), ('lease', 'TEXT'),
                                  ('validated_at', 'TEXT'), ('shared_at', 'TEXT'), ('closed_at', 'TEXT'),
