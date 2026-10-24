@@ -85,6 +85,11 @@ def apply(store, root, spool, backup_dir, moment=None, public_media='/var/lib/en
                 if store.db.execute("SELECT 1 FROM sqlite_master WHERE name='buffer_drafts'").fetchone():
                     store.db.execute("UPDATE buffer_drafts SET payload='{}',response=NULL WHERE job=?",(j['id'],))
                     store.db.execute('DELETE FROM buffer_media WHERE job=?',(j['id'],))
+                if store.db.execute("SELECT 1 FROM sqlite_master WHERE name='buffer_publications'").fetchone():
+                    for r in store.db.execute('SELECT post_id,response FROM buffer_publications WHERE job=?',(j['id'],)).fetchall():
+                        response=json.loads(r['response'] or '{}')
+                        minimal={k:response.get(k) for k in ['status','sentAt','externalLink']}
+                        store.db.execute("UPDATE buffer_publications SET expected='{}',edit_input='{}',response=? WHERE post_id=?",(json.dumps(minimal),r['post_id']))
                 store.db.execute('UPDATE outbox SET payload=? WHERE job=?',
                                  (json.dumps({'kind':'tombstone','jobId':j['id']}), j['id']))
                 store.db.execute("UPDATE jobs SET result=NULL,session=NULL,question=NULL,brief='',snapshot=NULL,approval=NULL,purged_at=? WHERE id=?",

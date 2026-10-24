@@ -142,6 +142,8 @@ class TrackingTests(unittest.TestCase):
         public=self.root/'public-media';public.mkdir()
         public_copy=public/('a'*64+'.mp4');public_copy.write_bytes(video.read_bytes())
         self.store.db.execute('INSERT INTO buffer_media VALUES(?,?,?,?,?)',(job,1,public_copy.name,h,'https://example.com/video.mp4'))
+        self.store.db.execute("INSERT INTO buffer_publications(job,revision,channel,service,post_id,expected,edit_input,status,response) VALUES(?,1,'channel','instagram','post','{\"text\":\"caption\"}','{\"text\":\"caption\"}','sent',?)",
+                              (job,json.dumps({'status':'sent','sentAt':at,'text':'full caption'})))
         before=moment-datetime.timedelta(seconds=1)
         self.assertFalse(retention.apply(self.store,self.root,spool,self.root/'backup',before,public)['mediaDeleted'])
         preview.write_bytes(b'modified')
@@ -160,6 +162,9 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(result['detailsPurged'],[job]);self.assertIsNone(self.store.get(job)['result'])
         self.assertEqual(self.store.get(job)['status'],'shared')
         self.assertTrue(self.store.get(job)['sharing'])
+        publication=self.store.db.execute('SELECT expected,edit_input,response FROM buffer_publications WHERE job=?',(job,)).fetchone()
+        self.assertEqual(publication['expected'],'{}');self.assertEqual(publication['edit_input'],'{}')
+        self.assertEqual(json.loads(publication['response']),{'status':'sent','sentAt':at,'externalLink':None})
 
 
 if __name__ == '__main__': unittest.main()

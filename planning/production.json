@@ -44,7 +44,7 @@
       "id": "ecee3555f0c8",
       "date": "2026-10-24",
       "option": 1,
-      "status": "validated",
+      "status": "shared",
       "revision": 2,
       "content": [
         "I work. I worked.",
@@ -71,11 +71,19 @@
       "summary": "Prévisualisation de l’option 1 créée le 24/10/2026 à 00:09:29, heure de Paris : dix verbes réguliers du quotidien au présent, passé et futur.",
       "episode": "content/episodes/2026-10-24_00-09-29-option-1.json",
       "validatedAt": "2026-10-23T23:11:42.211007+00:00",
-      "sharedAt": null,
-      "closedAt": null,
-      "platforms": [],
-      "publicationUrls": [],
-      "source": "Suivi de fabrication ; aucune publication confirmée.",
+      "sharedAt": "2026-10-24T07:55:05.245695+00:00",
+      "closedAt": "2026-10-24T07:55:05.245695+00:00",
+      "platforms": [
+        "instagram",
+        "tiktok",
+        "youtube"
+      ],
+      "publicationUrls": [
+        "https://www.instagram.com/reel/De3o9Ooj0Wo/",
+        "https://tiktok.com/@englizygo/video/7700139194793889057",
+        "https://www.youtube.com/watch?v=LnhpfHyuG5w"
+      ],
+      "source": "Publication terminée confirmée : Buffer : chaque destination au statut sent, avec date et mode automatique.",
       "validationSource": "Confirmation explicite utilisateur : Lecture, image et son corrects"
     }
   ]

@@ -167,7 +167,10 @@ class Store:
     def confirm_shared(self, job_id, revision, owner, chat, evidence):
         """Enregistre une publication terminée, jamais un simple envoi Telegram."""
         job = self.owned(job_id, owner, chat)
-        if job['revision'] != revision or job['status'] != 'validated':
+        permitted = ['validated']
+        if evidence.get('source') == 'platform-receipts':
+            permitted += ['publishing','partially_published','publication_unknown']
+        if job['revision'] != revision or job['status'] not in permitted:
             raise ValueError('Seule la version validée peut être déclarée partagée.')
         if (evidence.get('source') not in ['explicit-user-confirmation', 'platform-receipts']
                 or evidence.get('allDestinationsConfirmed') is not True or not evidence.get('confirmation')):

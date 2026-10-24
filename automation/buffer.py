@@ -10,6 +10,17 @@ import urllib.request
 
 ENDPOINT = 'https://api.buffer.com'
 QUERIES = {
+    'publication_post': '''query EnglizyPublication($input: PostInput!) {
+      post(input:$input) { id channelId channelService status text sentAt dueAt externalLink
+        schedulingType notificationStatus allowedActions error { message }
+        assets { source mimeType type }
+        metadata { __typename
+          ... on InstagramPostMetadata { type shouldShareToFeed firstComment isAiGenerated }
+          ... on TiktokPostMetadata { type title isAiGenerated }
+          ... on YoutubePostMetadata { type title privacy madeForKids category { categoryId }
+            embeddable notifySubscribers license isAiGenerated } }
+      }
+    }''',
     'account': 'query EnglizyAccount { account { id organizations { id name } } }',
     'channels': '''query EnglizyChannels($input: ChannelsInput!) {
       channels(input:$input) { id organizationId name displayName service type

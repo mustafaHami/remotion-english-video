@@ -1,4 +1,6 @@
-# Buffer : trois brouillons vérifiés, aucune publication
+# Buffer : préparation des trois brouillons
+
+Cette page décrit l'étape de préparation sans publication. Le parcours de publication autorisé ensuite est documenté dans [PUBLICATION.md](PUBLICATION.md).
 
 Le 24 octobre 2026, l'utilisateur a choisi Instagram, TikTok et YouTube pour préparer des brouillons de la vidéo validée `ecee3555f0c8`, révision 2. Ce choix n'autorise ni publication ni programmation. La tâche, Excel et `planning/production.json` restent `validated` ; `shared_at`, `closed_at` et l'accord de publication restent vides.
 
@@ -49,8 +51,8 @@ Déployer les modules du bridge à une frontière sans travail en cours selon OP
 
 Preuves privées : `/var/lib/englizy/management/buffer-verification.json`, `buffer-readback-*.json`. Sauvegarde avant modification : `/var/backups/englizy/buffer-before-20261024T071642Z` (SQLite cohérent, code, nginx et unité). Sauvegarde n8n après connexion : `/var/backups/englizy/20261024T072116886376Z` ; extraction isolée, intégrité SQLite et égalité de la clé de chiffrement vérifiées (1 utilisateur, 7 workflows, 3 credentials). Les clés restent hors du dépôt.
 
-## Suite non exécutée
+## Étape suivante
 
-La lecture humaine des brouillons et les éventuelles corrections restent possibles. L'adaptateur de publication réelle avec accord lié au MP4, aux légendes, destinations et horaire n'est pas encore activé. Il faudra ensuite suivre séparément chaque plateforme, réconcilier les résultats incertains et mettre à jour l'historique uniquement sur publication confirmée. Aucun horaire quotidien de création/publication n'est activé.
+La lecture humaine des brouillons et les éventuelles corrections restent possibles. L’adaptateur de publication réelle, autorisé après cette étape, est décrit dans PUBLICATION.md. Il faudra ensuite suivre séparément chaque plateforme, réconcilier les résultats incertains et mettre à jour l'historique uniquement sur publication confirmée. Aucun horaire quotidien de création/publication n'est activé.
 
 Références : [création de brouillon](https://developers.buffer.com/examples/create-draft-post.html), [vidéo](https://developers.buffer.com/examples/create-video-post.html), [hébergement du média](https://developers.buffer.com/guides/hosting-media.html), [schéma API](https://developers.buffer.com/reference.html).

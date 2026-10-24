@@ -19,7 +19,7 @@ Règles explicitement choisies par l'utilisateur : un partage désigne une publi
 
 Une commande `/partage` incomplète affiche désormais sa syntaxe et précise qu’elle ne publie pas les brouillons Buffer. Aucun état ne change. L’aide générale mentionne aussi cette commande.
 
-L'API de publication automatique reste absente ; Buffer est connecté pour des brouillons uniquement, voir [BUFFER.md](BUFFER.md). Aucune tâche réelle n'a été marquée `shared` pendant cette livraison. Les tests de ce passage utilisent uniquement des bases temporaires.
+Les brouillons Buffer sont documentés dans [BUFFER.md](BUFFER.md) ; `/publier IDENTIFIANT VERSION CONFIRME` autorise la publication d’une proposition préparée, voir [PUBLICATION.md](PUBLICATION.md). Les états `publishing`, `partially_published` et `publication_unknown` restent ouverts. Seules les confirmations sur toutes les destinations permettent `shared`.
 
 Un menu `/video` et un ancien bouton de sélection refusent une nouvelle création tant qu'une vidéo reste ouverte. Le suivi des lignes humaines du Journal est aussi consulté via `production.json`. Les questions de diagnostic n'interdisent pas à elles seules une vidéo. Une nouvelle tâche est toujours déclenchée par un choix explicite, jamais par le récapitulatif.
 
@@ -53,7 +53,9 @@ Ces délais concernent les données actives, pas les sauvegardes privées exista
 - Journal : vidéo `ecee3555f0c8`, option 1, révision 2, **validated**, date de création 24/10/2026 Paris. `closed_at` et `shared_at` restent vides, aucun accord de publication. Anciennes lignes et briefs préservés après relecture du XLSX. Le registre des publications confirmées contient toujours seulement les deux anciennes vidéos.
 - Le blocage d'une nouvelle création a été vérifié sur l'état réel sans créer de tâche. Récapitulatif de contrôle envoyé par n8n, reçu Telegram **26**.
 - Timer Excel actif ; plusieurs cycles observés, dont des cycles sans réécriture. Aucune donnée réelle éligible à la purge : zéro fichier et zéro tâche supprimés.
-- 61 tests Python simulés couvrent notamment la version validée, le propriétaire, la déclaration de partage, le refus de création supplémentaire, le suivi Excel externe, la conservation des briefs, les conflits, l'idempotence, les seuils exacts de 10/15 jours et le refus de suppression d'un MP4 modifié. Le récapitulatif est testé avant/après 09h en été et en hiver, avec déduplication après réouverture de la base.
+- 70 tests Python simulés couvrent notamment la version validée, le propriétaire, la déclaration de partage, le refus de création supplémentaire, le suivi Excel externe, la conservation des briefs, les conflits, l'idempotence, les seuils exacts de 10/15 jours et le refus de suppression d'un MP4 modifié. Le récapitulatif est testé avant/après 09h en été et en hiver, avec déduplication après réouverture de la base.
 - Le premier déclenchement **horaire réel à 09h Paris le 24 octobre** est constaté : reçu Telegram **27**, clé durable `daily-summary:2026-10-24:0`. Buffer a ensuite reçu trois brouillons ; aucune publication sociale n'a été effectuée.
 
 Sauvegarde avant migration : `/var/backups/englizy/tracking-before-20261023T231142Z/state-before.tar.gz`. Sauvegardes après vérification : `/var/backups/englizy/tracking-verified-20261023T232037Z` (base contrôlée et fichiers de suivi) et `/var/backups/englizy/20261023T232037232674Z` (n8n, extraction et intégrité vérifiées). Preuve privée : `/var/lib/englizy/management/tracking-check.json`.
+
+Mise à jour après publication autorisée : le 24 octobre, la vidéo `ecee3555f0c8` est passée à `shared` seulement après trois confirmations Buffer. Excel et le registre ont été relus ; voir [PUBLICATION.md](PUBLICATION.md). Les preuves `validated` ci-dessus décrivent l’étape précédente, avant cet accord.

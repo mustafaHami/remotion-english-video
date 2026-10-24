@@ -7,7 +7,7 @@
 
 Le Journal suit aussi les vidéos non publiées : `pending_validation` après l'envoi privé, `validated` après validation de cette version, `shared` après publication terminée sur les réseaux. `shared` signifie tâche close ; une vidéo validée reste ouverte. Les anciennes lignes « Publié » restent préservées et sont normalisées en `shared` dans `production.json`.
 
-`production.json` est la projection lisible des tâches et des lignes externes du Journal. Elle ne contient aucun identifiant de compte ni secret. La tâche `ecee3555f0c8` (option 1, création le 24/10/2026 en heure de Paris) y figure comme `validated`, avec contenu et validation humaine. Le registre `publications.json` conserve seulement ses deux publications déjà confirmées ; cette nouvelle vidéo n'y est pas déclarée publiée.
+`production.json` est la projection lisible des tâches et des lignes externes du Journal. Elle ne contient aucun identifiant de compte ni secret. La tâche `ecee3555f0c8` (option 1, création le 24/10/2026 en heure de Paris) y figure comme `shared`, après l’accord explicite puis les confirmations Buffer du 24/10/2026 sur Instagram, TikTok et YouTube. Le registre `publications.json` contient désormais trois publications confirmées, dont les deux historiques préservées. Les liens et reçus sont décrits dans [PUBLICATION.md](../deploy/n8n/PUBLICATION.md).
 
 Le 20/10/2026, les options 3 et 4 ont été publiées selon déclaration de l’utilisateur. Les contenus exacts figurent dans le classeur et `publications.json`. Plateformes et liens n’ont pas été fournis : ils restent vides.
 

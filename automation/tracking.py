@@ -9,6 +9,8 @@ LABELS = {
     'awaiting_preview': 'envoi du MP4 en attente', 'pending_validation': 'vidéo à valider',
     'validated': 'validée, à publier', 'failed': 'incident à examiner',
     'shared': 'publiée, tâche close', 'cancelled': 'annulée',
+    'publishing': 'publication en cours', 'partially_published': 'publication partielle, suivi en cours',
+    'publication_unknown': 'publication à vérifier, aucun renvoi automatique',
 }
 
 

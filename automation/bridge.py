@@ -13,6 +13,7 @@ from .store import Store, digest, now
 from . import media
 from . import tracking
 from . import buffer
+from . import publication
 
 
 class Application:
@@ -22,6 +23,7 @@ class Application:
             raise ValueError('Identité privée confirmée requise.')
         store = Store(config['database'])
         buffer.ensure_schema(store)
+        publication.ensure_schema(store)
         store.close()
 
     def diagnostic(self, store):
@@ -92,6 +94,18 @@ class Application:
                 return {'accepted': True, 'jobId': job_id}
 
             try:
+                match = re.fullmatch(r'/publier\s+([a-f0-9]{12})\s+([1-9][0-9]*)\s+CONFIRME', text.strip())
+                if match:
+                    if os.environ.get('PUBLISH_ENABLED') != 'true':
+                        raise ValueError('Publication non activée sur le VPS.')
+                    result = publication.approve(store,match[1],int(match[2]),sender['id'],chat['id'],'Telegram /publier CONFIRME')
+                    reply(('Cette version a déjà reçu un accord. Aucune nouvelle publication déclenchée. /statut '+match[1]
+                           if result.get('alreadyApproved') else 'Accord enregistré pour cette version et ses destinations préparées. Le résultat de chaque réseau reviendra ici.'),match[1])
+                    return result
+                if text.strip().split(maxsplit=1)[:1] == ['/publier']:
+                    return reply('Après lecture de la vidéo, des légendes et des destinations préparées : '
+                                 '/publier IDENTIFIANT VERSION CONFIRME. '
+                                 'Cette commande autorise une publication réelle immédiate via Buffer. Aucun accord enregistré pour cette commande incomplète.')
                 if text.strip() == '/encours':
                     return tracking.emit_summary(store, self.config, 'summary-event:' + str(event_id))
                 match = re.fullmatch(r'/valider\s+([a-f0-9]{12})\s+([1-9][0-9]*)', text.strip())
@@ -173,7 +187,7 @@ class Application:
                 return reply('Commandes : /encours, /video, /statut IDENTIFIANT, /question IDENTIFIANT, '
                              '/valider IDENTIFIANT VERSION.\n'
                              '/partage : aide pour déclarer une publication déjà terminée sur les réseaux. '
-                             'Cette commande ne publie pas les brouillons Buffer. Aucune publication automatique.')
+                             '/publier : aide pour autoriser la publication des brouillons préparés. Aucun horaire automatique de publication.')
             except ValueError as error:
                 return reply(str(error))
 
@@ -186,6 +200,12 @@ class Application:
         store = Store(self.config['database'])
         try:
             if role == 'n8n':
+                if path == '/buffer/publications/claim':
+                    return publication.claim_reads(store, body)
+                if path == '/buffer/publications/preflight':
+                    return publication.preflight(store, body)
+                if path == '/buffer/publications/receipt':
+                    return publication.receipt(store, body)
                 if path == '/buffer/drafts/claim':
                     return buffer.claim_draft(store, body)
                 if path == '/buffer/drafts/receipt':
@@ -400,7 +420,7 @@ def main():
         raise ValueError('Deux secrets de transport distincts sont requis.')
     application = Application(config)
     server = ThreadingHTTPServer((config['bind'], config['port']), handler(application, tokens))
-    print('Bridge privé prêt ; publication désactivée.', flush=True)
+    print('Bridge privé prêt ; publication ' + ('soumise à accord exact.' if os.environ.get('PUBLISH_ENABLED') == 'true' else 'désactivée.'), flush=True)
     server.serve_forever()
 
 
